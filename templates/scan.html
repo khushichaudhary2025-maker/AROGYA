@@ -1,0 +1,448 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arogya - Scan Prescription</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-dark:#0d6e7a; --teal:#1a9bab; --teal-light:#2ec4b6;
+    --green:#38b44a; --cream:#f4faf8; --dark:#0a2a2f;
+    --mid:#1c4a52; --text:#1a3a3f; --muted:#6b9aa0;
+    --border:rgba(26,155,171,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text); min-height:100vh; }
+
+  /* BG BLOBS */
+  body::before {
+    content:''; position:fixed; top:-200px; right:-150px;
+    width:600px; height:600px;
+    background:radial-gradient(circle,rgba(26,155,171,0.10) 0%,transparent 70%);
+    border-radius:50%; pointer-events:none; z-index:0;
+  }
+  body::after {
+    content:''; position:fixed; bottom:-150px; left:-100px;
+    width:500px; height:500px;
+    background:radial-gradient(circle,rgba(56,180,74,0.08) 0%,transparent 70%);
+    border-radius:50%; pointer-events:none; z-index:0;
+  }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 48px;
+    background:rgba(244,250,248,0.97);
+    backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-logo { display:flex; align-items:center; gap:8px; text-decoration:none; }
+  .nav-logo img { height:46px; object-fit:contain; }
+  .nav-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--teal-dark); letter-spacing:1px; }
+  .nav-back { color:var(--teal-dark); font-size:13px; font-weight:600; text-decoration:none; display:flex; align-items:center; gap:6px; transition:color .2s; }
+  .nav-back:hover { color:var(--teal); }
+
+  /* PAGE */
+  .page { max-width:860px; margin:0 auto; padding:48px 24px 80px; position:relative; z-index:1; }
+
+  /* HEADER */
+  .page-header { text-align:center; margin-bottom:48px; animation:fadeUp .5s ease both; }
+  .page-badge {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(26,155,171,0.1); border:1px solid rgba(26,155,171,0.25);
+    color:var(--teal); padding:6px 16px; border-radius:50px;
+    font-size:12px; font-weight:600; letter-spacing:.5px;
+    margin-bottom:20px; text-transform:uppercase;
+  }
+  .page-badge .dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+  .page-header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:clamp(28px,4vw,44px); color:var(--dark); letter-spacing:-1.5px; margin-bottom:12px; }
+  .page-header h1 span { background:linear-gradient(135deg,var(--teal),var(--green)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .page-header p { font-size:16px; color:var(--muted); max-width:500px; margin:0 auto; line-height:1.7; }
+
+  /* STEPS */
+  .steps-row { display:flex; justify-content:center; gap:0; margin-bottom:48px; animation:fadeUp .5s .1s ease both; }
+  .step-item { display:flex; flex-direction:column; align-items:center; gap:8px; padding:0 28px; position:relative; }
+  .step-item:not(:last-child)::after {
+    content:''; position:absolute; top:18px; right:-10px;
+    width:20px; height:2px; background:var(--border);
+  }
+  .step-num {
+    width:36px; height:36px; border-radius:50%;
+    background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; display:flex; align-items:center; justify-content:center;
+    font-family:'Syne',sans-serif; font-weight:800; font-size:14px;
+    box-shadow:0 4px 12px rgba(13,110,122,0.3);
+  }
+  .step-label { font-size:11px; font-weight:600; color:var(--muted); text-align:center; max-width:80px; line-height:1.4; }
+
+  /* UPLOAD CARD */
+  .upload-card {
+    background:white; border-radius:28px;
+    box-shadow:0 16px 64px rgba(13,110,122,0.10);
+    border:1px solid var(--border); overflow:hidden;
+    animation:fadeUp .5s .2s ease both;
+    margin-bottom:24px;
+  }
+
+  .upload-card-header {
+    background:linear-gradient(135deg,var(--teal-dark) 0%,var(--teal) 60%,var(--green) 100%);
+    padding:24px 32px; color:white;
+    display:flex; align-items:center; gap:16px;
+  }
+  .header-icon { width:48px; height:48px; border-radius:14px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+  .upload-card-header h2 { font-family:'Syne',sans-serif; font-weight:700; font-size:20px; }
+  .upload-card-header p { opacity:.8; font-size:13px; margin-top:3px; }
+
+  .upload-card-body { padding:32px; }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border:2.5px dashed rgba(26,155,171,0.35);
+    border-radius:20px; padding:48px 32px;
+    text-align:center; cursor:pointer;
+    transition:all .25s; background:var(--cream);
+    position:relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color:var(--teal);
+    background:rgba(26,155,171,0.05);
+    transform:scale(1.01);
+  }
+  .drop-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .dz-icon { font-size:52px; margin-bottom:16px; }
+  .dz-title { font-family:'Syne',sans-serif; font-weight:700; font-size:18px; color:var(--dark); margin-bottom:8px; }
+  .dz-sub { font-size:14px; color:var(--muted); margin-bottom:16px; line-height:1.6; }
+  .dz-formats { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
+  .dz-format { background:rgba(26,155,171,0.1); color:var(--teal-dark); font-size:11px; font-weight:700; padding:4px 12px; border-radius:50px; letter-spacing:.3px; }
+
+  /* PREVIEW */
+  .preview-wrap { display:none; }
+  .preview-wrap.show { display:block; }
+  .preview-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .preview-header h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--dark); }
+  .btn-change { background:transparent; border:1.5px solid var(--border); color:var(--teal-dark); padding:6px 16px; border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; }
+  .btn-change:hover { border-color:var(--teal); }
+  .preview-img-wrap {
+    border-radius:16px; overflow:hidden; border:1px solid var(--border);
+    background:#000; max-height:320px; display:flex; align-items:center; justify-content:center;
+    margin-bottom:16px;
+  }
+  .preview-img-wrap img { max-width:100%; max-height:320px; object-fit:contain; display:block; }
+
+  .file-info { display:flex; align-items:center; gap:12px; background:var(--cream); border-radius:12px; padding:14px 18px; margin-bottom:24px; }
+  .file-info-icon { font-size:24px; }
+  .file-info-text { flex:1; }
+  .file-info-name { font-size:14px; font-weight:600; color:var(--dark); }
+  .file-info-size { font-size:12px; color:var(--muted); margin-top:2px; }
+  .file-check { color:var(--green); font-size:20px; font-weight:700; }
+
+  /* SCAN BTN */
+  .btn-scan {
+    width:100%;
+    background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; border:none; padding:18px;
+    border-radius:16px; font-family:'DM Sans',sans-serif;
+    font-weight:700; font-size:16px; cursor:pointer;
+    box-shadow:0 8px 28px rgba(13,110,122,0.35);
+    transition:all .25s; letter-spacing:.3px;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .btn-scan:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(13,110,122,0.45); }
+  .btn-scan:active { transform:translateY(0); }
+  .btn-scan:disabled { background:#b0cdd4; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  /* LOADING STATE */
+  .scanning-overlay {
+    display:none; flex-direction:column; align-items:center;
+    justify-content:center; gap:20px; padding:40px;
+    text-align:center;
+  }
+  .scanning-overlay.show { display:flex; }
+  .scan-ring {
+    width:72px; height:72px; border-radius:50%;
+    border:4px solid var(--border);
+    border-top-color:var(--teal);
+    animation:spin .8s linear infinite;
+  }
+  .scan-text { font-family:'Syne',sans-serif; font-weight:700; font-size:18px; color:var(--teal-dark); }
+  .scan-sub { font-size:13px; color:var(--muted); }
+  .scan-steps { display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px; }
+  .scan-step { display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:10px; background:var(--cream); font-size:13px; color:var(--muted); transition:all .4s; }
+  .scan-step.active { background:rgba(26,155,171,0.1); color:var(--teal-dark); font-weight:600; }
+  .scan-step.done { background:#e8f8ee; color:#1a7a3a; }
+  .scan-step-icon { font-size:16px; }
+
+  /* TIPS CARD */
+  .tips-card {
+    background:white; border-radius:24px;
+    border:1px solid var(--border);
+    padding:28px 32px;
+    animation:fadeUp .5s .3s ease both;
+  }
+  .tips-card h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:17px; color:var(--dark); margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+  .tips-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .tip-item { display:flex; align-items:flex-start; gap:12px; padding:14px; background:var(--cream); border-radius:14px; }
+  .tip-icon { font-size:22px; flex-shrink:0; margin-top:2px; }
+  .tip-title { font-size:13px; font-weight:700; color:var(--dark); margin-bottom:3px; }
+  .tip-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+
+  /* SUPPORTED FORMATS */
+  .formats-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:24px; animation:fadeUp .5s .4s ease both; }
+  .format-chip { display:flex; align-items:center; gap:6px; background:white; border:1px solid var(--border); padding:8px 16px; border-radius:50px; font-size:12px; font-weight:600; color:var(--muted); }
+  .format-chip span { font-size:16px; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  @media(max-width:600px) {
+    .tips-grid { grid-template-columns:1fr; }
+    .steps-row { gap:0; }
+    .step-item { padding:0 16px; }
+    nav { padding:10px 20px; }
+    .page { padding:32px 16px 60px; }
+    .upload-card-body { padding:20px; }
+    .upload-card-header { padding:20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="/static/arogya.jpeg" alt="Arogya">
+    <span>AROGYA</span>
+  </a>
+  <a href="/" class="nav-back">&#8592; Back to Home</a>
+</nav>
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-badge"><span class="dot"></span>AI Powered OCR &middot; Tesseract Engine</div>
+    <h1>Scan Your <span>Prescription</span></h1>
+    <p>Upload a clear photo of your prescription and our OCR engine will extract all medicine details automatically</p>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps-row">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div class="step-label">Upload Image</div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div class="step-label">OCR Scans It</div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div class="step-label">View Results</div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">4</div>
+      <div class="step-label">Order Medicines</div>
+    </div>
+  </div>
+
+  <!-- UPLOAD CARD -->
+  <div class="upload-card">
+
+    <div class="upload-card-header">
+      <div class="header-icon">&#128247;</div>
+      <div>
+        <h2>Upload Prescription</h2>
+        <p>Supports JPG, PNG, PDF &mdash; up to 10MB</p>
+      </div>
+    </div>
+
+    <div class="upload-card-body">
+
+      <!-- SCANNING OVERLAY (shown during processing) -->
+      <div class="scanning-overlay" id="scanningOverlay">
+        <div class="scan-ring"></div>
+        <div class="scan-text">Scanning Prescription...</div>
+        <div class="scan-sub">Tesseract OCR is reading your prescription</div>
+        <div class="scan-steps">
+          <div class="scan-step active" id="ss1"><span class="scan-step-icon">&#128247;</span>Loading image...</div>
+          <div class="scan-step" id="ss2"><span class="scan-step-icon">&#128269;</span>Detecting text regions...</div>
+          <div class="scan-step" id="ss3"><span class="scan-step-icon">&#129302;</span>Extracting medicine names...</div>
+          <div class="scan-step" id="ss4"><span class="scan-step-icon">&#128203;</span>Preparing results...</div>
+        </div>
+      </div>
+
+      <!-- UPLOAD FORM (hidden during scanning) -->
+      <div id="uploadSection">
+        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm" onsubmit="startScan(event)">
+
+          <!-- DROP ZONE (hidden when file selected) -->
+          <div class="drop-zone" id="dropZone"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            ondrop="handleDrop(event)">
+            <input type="file" name="image" id="fileInput" accept="image/*,.pdf" onchange="handleFileSelect(event)">
+            <div class="dz-icon">&#128444;&#65039;</div>
+            <div class="dz-title">Drop your prescription here</div>
+            <div class="dz-sub">or <strong style="color:var(--teal)">click to browse</strong> from your device</div>
+            <div class="dz-formats">
+              <span class="dz-format">JPG</span>
+              <span class="dz-format">PNG</span>
+              <span class="dz-format">PDF</span>
+              <span class="dz-format">WEBP</span>
+            </div>
+          </div>
+
+          <!-- PREVIEW (shown when file selected) -->
+          <div class="preview-wrap" id="previewWrap">
+            <div class="preview-header">
+              <h3>&#128247; Preview</h3>
+              <button type="button" class="btn-change" onclick="resetFile()">&#10005; Change File</button>
+            </div>
+            <div class="preview-img-wrap">
+              <img id="previewImg" src="" alt="Prescription Preview">
+            </div>
+            <div class="file-info">
+              <div class="file-info-icon">&#128196;</div>
+              <div class="file-info-text">
+                <div class="file-info-name" id="fileName">filename.jpg</div>
+                <div class="file-info-size" id="fileSize">0 KB</div>
+              </div>
+              <div class="file-check">&#10003;</div>
+            </div>
+            <button type="submit" class="btn-scan" id="scanBtn">
+              <span>&#129302;</span> Scan with Tesseract OCR
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TIPS -->
+  <div class="tips-card">
+    <h3>&#128161; Tips for Better Results</h3>
+    <div class="tips-grid">
+      <div class="tip-item">
+        <div class="tip-icon">&#9728;&#65039;</div>
+        <div>
+          <div class="tip-title">Good Lighting</div>
+          <div class="tip-desc">Take photo in bright, even light. Avoid shadows on the prescription.</div>
+        </div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon">&#128247;</div>
+        <div>
+          <div class="tip-title">Camera Straight</div>
+          <div class="tip-desc">Hold camera directly above the prescription. Avoid angles.</div>
+        </div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon">&#128269;</div>
+        <div>
+          <div class="tip-title">Full Prescription</div>
+          <div class="tip-desc">Make sure the entire prescription is visible and nothing is cut off.</div>
+        </div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon">&#128196;</div>
+        <div>
+          <div class="tip-title">Clear &amp; Sharp</div>
+          <div class="tip-desc">Ensure the image is in focus and text is readable before uploading.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPORTED FORMATS -->
+  <div class="formats-row">
+    <div class="format-chip"><span>&#9989;</span> Handwritten prescriptions</div>
+    <div class="format-chip"><span>&#9989;</span> Printed prescriptions</div>
+    <div class="format-chip"><span>&#9989;</span> Digital prescriptions</div>
+    <div class="format-chip"><span>&#9989;</span> Hospital discharge slips</div>
+  </div>
+
+</div>
+
+<script>
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    showPreview(file);
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.add('dragover');
+  }
+
+  function handleDragLeave(e) {
+    document.getElementById('dropZone').classList.remove('dragover');
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if(!file) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+    showPreview(file);
+  }
+
+  function showPreview(file) {
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('previewWrap').classList.add('show');
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+    if(file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => { document.getElementById('previewImg').src = e.target.result; };
+      reader.readAsDataURL(file);
+    } else {
+      document.getElementById('previewImg').src = '';
+      document.getElementById('previewImg').alt = 'PDF File Selected';
+    }
+  }
+
+  function resetFile() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('dropZone').style.display = 'block';
+    document.getElementById('previewWrap').classList.remove('show');
+    document.getElementById('previewImg').src = '';
+  }
+
+  function startScan(e) {
+    const file = document.getElementById('fileInput').files[0];
+    if(!file) { e.preventDefault(); alert('Please select a prescription image first!'); return; }
+
+    // Show scanning overlay
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('scanningOverlay').classList.add('show');
+
+    // Animate scan steps
+    const steps = ['ss1','ss2','ss3','ss4'];
+    steps.forEach((id, i) => {
+      setTimeout(() => {
+        if(i > 0) {
+          document.getElementById(steps[i-1]).classList.remove('active');
+          document.getElementById(steps[i-1]).classList.add('done');
+          document.getElementById(steps[i-1]).querySelector('.scan-step-icon').textContent = '✓';
+        }
+        document.getElementById(id).classList.add('active');
+      }, i * 900);
+    });
+
+    // Let form submit naturally after short delay
+    // (form will submit to /upload as defined)
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arogya - Scan Results</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-dark:#0d6e7a; --teal:#1a9bab; --teal-light:#2ec4b6;
+    --green:#38b44a; --cream:#f4faf8; --dark:#0a2a2f;
+    --mid:#1c4a52; --text:#1a3a3f; --muted:#6b9aa0;
+    --border:rgba(26,155,171,0.15); --orange:#f39c12;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text); }
+
+  nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 40px; background:rgba(244,250,248,0.97);
+    backdrop-filter:blur(16px); border-bottom:1px solid var(--border);
+  }
+  .nav-logo { display:flex; align-items:center; gap:8px; text-decoration:none; }
+  .nav-logo img { height:46px; object-fit:contain; }
+  .nav-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--teal-dark); letter-spacing:1px; }
+  .nav-right { display:flex; gap:12px; }
+  .btn-nav { text-decoration:none; padding:9px 20px; border-radius:50px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all .2s; font-family:'DM Sans',sans-serif; }
+  .btn-primary { background:linear-gradient(135deg,var(--teal-dark),var(--teal)); color:white; box-shadow:0 4px 16px rgba(13,110,122,0.3); }
+  .btn-primary:hover { transform:translateY(-1px); }
+  .btn-outline { background:white; color:var(--teal-dark); border:1.5px solid var(--teal); }
+  .btn-outline:hover { background:var(--teal); color:white; }
+
+  .page { max-width:1000px; margin:0 auto; padding:40px 24px 80px; }
+
+  /* SUCCESS HEADER */
+  .result-header {
+    background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    border-radius:24px; padding:32px 36px;
+    color:white; margin-bottom:32px;
+    display:flex; align-items:center; gap:20px;
+  }
+  .header-icon { width:60px; height:60px; background:rgba(255,255,255,0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0; }
+  .result-header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:26px; letter-spacing:-0.5px; }
+  .result-header p { opacity:.8; font-size:14px; margin-top:4px; }
+  .med-count { background:rgba(255,255,255,0.2); padding:4px 14px; border-radius:50px; font-size:13px; font-weight:700; margin-top:8px; display:inline-block; }
+
+  /* NO MEDICINES FOUND */
+  .no-meds {
+    background:white; border-radius:20px; padding:48px 32px;
+    text-align:center; border:1px solid var(--border);
+    margin-bottom:28px;
+  }
+  .no-meds div { font-size:52px; margin-bottom:16px; }
+  .no-meds h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:20px; color:var(--dark); margin-bottom:8px; }
+  .no-meds p { color:var(--muted); font-size:14px; line-height:1.7; max-width:400px; margin:0 auto 20px; }
+
+  /* GRID */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px; }
+
+  /* MEDICINE CARD */
+  .med-card {
+    background:white; border-radius:18px; padding:20px;
+    border:1px solid var(--border); transition:all .2s;
+    position:relative; overflow:hidden;
+  }
+  .med-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(13,110,122,0.1); border-color:var(--teal); }
+  .med-card-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; gap:8px; }
+  .med-name { font-family:'Syne',sans-serif; font-weight:700; font-size:17px; color:var(--dark); }
+  .med-price { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--teal-dark); }
+  .med-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .med-tag { background:rgba(26,155,171,0.08); color:var(--teal-dark); font-size:11px; font-weight:600; padding:3px 10px; border-radius:50px; }
+  .med-tag-orange { background:rgba(243,156,18,0.1); color:#c47a1a; }
+  .med-actions { display:flex; gap:8px; margin-top:14px; }
+  .btn-cart { flex:1; background:linear-gradient(135deg,var(--teal-dark),var(--teal)); color:white; border:none; padding:10px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; }
+  .btn-cart:hover { box-shadow:0 4px 16px rgba(13,110,122,0.35); }
+  .btn-cart.added { background:linear-gradient(135deg,#1a7a3a,#38b44a); }
+  .btn-reminder { background:white; color:var(--orange); border:1.5px solid var(--orange); padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .btn-reminder:hover { background:var(--orange); color:white; }
+
+  /* REMINDER MODAL */
+  .reminder-form { display:none; margin-top:12px; padding:14px; background:var(--cream); border-radius:12px; }
+  .reminder-form.show { display:block; }
+  .reminder-form label { font-size:12px; font-weight:600; color:var(--text); display:block; margin-bottom:6px; }
+  .reminder-form input[type=time] { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:9px 12px; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--text); background:white; outline:none; margin-bottom:8px; }
+  .reminder-form input:focus { border-color:var(--orange); }
+  .btn-set-reminder { width:100%; background:linear-gradient(135deg,#c47a1a,var(--orange)); color:white; border:none; padding:10px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+
+  /* OCR RAW TEXT */
+  .ocr-section { background:white; border-radius:20px; padding:24px; border:1px solid var(--border); margin-bottom:28px; }
+  .ocr-section h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--dark); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .ocr-text { background:var(--cream); border-radius:12px; padding:16px; font-family:monospace; font-size:12px; color:var(--text); line-height:1.8; max-height:200px; overflow-y:auto; white-space:pre-wrap; word-break:break-word; border:1px solid var(--border); }
+  .ocr-text::-webkit-scrollbar { width:4px; }
+  .ocr-text::-webkit-scrollbar-thumb { background:var(--teal-light); border-radius:4px; }
+
+  /* CART SUMMARY */
+  .cart-summary {
+    position:fixed; bottom:24px; right:24px;
+    background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; border:none; padding:14px 24px;
+    border-radius:50px; font-family:'DM Sans',sans-serif;
+    font-weight:700; font-size:14px; cursor:pointer;
+    box-shadow:0 8px 28px rgba(13,110,122,0.4);
+    transition:all .2s; display:flex; align-items:center; gap:10px;
+    z-index:100; display:none;
+  }
+  .cart-summary.show { display:flex; }
+  .cart-summary:hover { transform:translateY(-2px); box-shadow:0 12px 36px rgba(13,110,122,0.5); }
+  .cart-badge { background:rgba(255,255,255,0.3); padding:2px 10px; border-radius:50px; font-size:12px; }
+
+  /* TIPS */
+  .tips-section { background:white; border-radius:20px; padding:24px; border:1px solid var(--border); }
+  .tips-section h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--dark); margin-bottom:14px; }
+  .tip-item { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; font-size:13px; color:var(--muted); line-height:1.6; }
+  .tip-item::before { content:'•'; color:var(--teal); font-weight:800; flex-shrink:0; margin-top:1px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--dark); color:white; padding:12px 24px; border-radius:50px; font-size:13px; font-weight:600; z-index:9999; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:700px) {
+    .grid-2 { grid-template-columns:1fr; }
+    .result-header { flex-direction:column; text-align:center; }
+    nav { padding:10px 20px; }
+    .page { padding:24px 16px 80px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="/static/arogya.jpeg" alt="Arogya">
+    <span>AROGYA</span>
+  </a>
+  <div class="nav-right">
+    <a href="/scan" class="btn-nav btn-outline">&#128247; Scan Again</a>
+    <a href="/store" class="btn-nav btn-primary">&#128717; Full Store</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- RESULT HEADER -->
+  {% if medicines %}
+  <div class="result-header">
+    <div class="header-icon">&#9989;</div>
+    <div>
+      <h1>Prescription Scanned!</h1>
+      <p>Tesseract OCR successfully extracted medicines from your prescription</p>
+      <span class="med-count">&#128138; {{ medicines|length }} medicine{{ 's' if medicines|length != 1 }} detected</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="result-header" style="background:linear-gradient(135deg,#c47a1a,#f39c12)">
+    <div class="header-icon">&#9888;&#65039;</div>
+    <div>
+      <h1>Scan Complete</h1>
+      <p>OCR processed your image — see details below</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- DETECTED MEDICINES -->
+  {% if medicines %}
+  <h2 style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:var(--dark);margin-bottom:20px">
+    &#128138; Detected Medicines
+  </h2>
+  <div class="grid-2" id="medsGrid">
+    {% for med in medicines %}
+    <div class="med-card" style="animation:fadeUp .4s {{ loop.index * 0.1 }}s ease both">
+      <div class="med-card-header">
+        <div class="med-name">{{ med.name }}</div>
+        <div class="med-price">&#8377;{{ med.price }}</div>
+      </div>
+      <div class="med-tags">
+        {% if med.dosage %}<span class="med-tag">{{ med.dosage }}</span>{% endif %}
+        {% if med.quantity %}<span class="med-tag">Qty: {{ med.quantity }}</span>{% endif %}
+        <span class="med-tag-orange med-tag">Prescription</span>
+      </div>
+      <div class="med-actions">
+        <button class="btn-cart" id="cart-{{ loop.index }}"
+          onclick="addToCart('{{ med.name }}', {{ med.price }}, {{ loop.index }})">
+          &#43; Add to Cart
+        </button>
+        <button class="btn-reminder"
+          onclick="toggleReminder('reminder-{{ loop.index }}')">
+          &#9200; Remind
+        </button>
+      </div>
+
+      <!-- REMINDER FORM -->
+      <div class="reminder-form" id="reminder-{{ loop.index }}">
+        <form action="/set_reminder" method="post">
+          <input type="hidden" name="medicine" value="{{ med.name }}">
+          <label>Set reminder time for {{ med.name }}</label>
+          <input type="time" name="time" required>
+          <button type="submit" class="btn-set-reminder">&#9200; Set Reminder</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <!-- NO MEDICINES FOUND -->
+  <div class="no-meds">
+    <div>&#128269;</div>
+    <h3>No Medicines Detected</h3>
+    <p>
+      OCR could not extract medicine names from this image.
+      This can happen if the image is blurry, dark, or the text is too small.
+    </p>
+    <a href="/scan" class="btn-nav btn-primary" style="display:inline-block">&#128247; Try Again with Better Image</a>
+  </div>
+
+  <!-- TIPS FOR BETTER SCAN -->
+  <div class="tips-section">
+    <h3>&#128161; Tips for Better OCR Results</h3>
+    <div class="tip-item">Take photo in bright light — avoid shadows on the prescription</div>
+    <div class="tip-item">Hold camera directly above — avoid tilted angles</div>
+    <div class="tip-item">Make sure entire prescription is visible and not cut off</div>
+    <div class="tip-item">Image should be sharp and in focus before uploading</div>
+    <div class="tip-item">Printed prescriptions work better than handwritten ones</div>
+  </div>
+  {% endif %}
+
+  <!-- OCR RAW TEXT (always show for debugging) -->
+  {% if ocr_text %}
+  <div class="ocr-section" style="margin-top:28px">
+    <h3>&#128196; Raw OCR Text <span style="font-size:12px;color:var(--muted);font-weight:400">(what Tesseract read from your image)</span></h3>
+    <div class="ocr-text">{{ ocr_text if ocr_text else "No text detected" }}</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- FLOATING CART BUTTON -->
+<button class="cart-summary" id="cartSummary" onclick="goToStore()">
+  &#128717; View Cart
+  <span class="cart-badge" id="cartBadgeCount">0 items</span>
+</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let cart = [];
+
+  function addToCart(name, price, idx) {
+    const existing = cart.find(c => c.name === name);
+    if(existing) {
+      existing.qty += 1;
+    } else {
+      cart.push({ name, price, qty: 1 });
+    }
+
+    const btn = document.getElementById('cart-' + idx);
+    btn.classList.add('added');
+    btn.textContent = '&#10003; Added';
+
+    const total = cart.reduce((s,c) => s + c.qty, 0);
+    document.getElementById('cartSummary').classList.add('show');
+    document.getElementById('cartBadgeCount').textContent = total + ' item' + (total > 1 ? 's' : '');
+
+    showToast(name + ' added to cart!');
+  }
+
+  function toggleReminder(id) {
+    const form = document.getElementById(id);
+    form.classList.toggle('show');
+  }
+
+  function goToStore() {
+    showToast('Opening store...');
+    setTimeout(() => window.location.href = '/store', 800);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>

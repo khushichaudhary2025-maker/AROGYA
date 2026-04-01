@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Medical Assistant</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+            color: white;
+        }
+
+        .medicine-card {
+            background: #2f2f4f;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: 0.3s;
+        }
+
+        .medicine-card:hover {
+            transform: scale(1.05);
+        }
+
+        #map {
+            height: 400px;
+            border-radius: 15px;
+        }
+    </style>
+</head>
+
+<body class="container mt-5">
+
+<h1 class="text-center mb-4">💊 AI Medical Assistant</h1>
+
+<!-- Upload -->
+<div class="card p-4 bg-dark">
+    <h4>Upload Prescription</h4>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="image" class="form-control mb-3">
+        <button class="btn btn-info w-100">Scan Prescription</button>
+    </form>
+</div>
+
+<hr>
+
+<!-- Store -->
+<h3>🛒 Available Medicines</h3>
+<div class="row">
+{% for med in all_medicines %}
+<div class="col-md-3 mb-3">
+    <div class="medicine-card">
+        <h5>{{ med.name }}</h5>
+        <p>₹{{ med.price }}</p>
+        <button class="btn btn-success">Buy</button>
+    </div>
+</div>
+{% endfor %}
+</div>
+
+<hr>
+
+<!-- SEARCH -->
+<h3>📍 Find Medical Stores</h3>
+
+<input type="text" id="searchBox" class="form-control mb-2" placeholder="Search pharmacy / place...">
+<button onclick="searchPlace()" class="btn btn-info mb-3">Search</button>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    var map = L.map('map').setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    var markers = [];
+
+    function clearMarkers() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+    }
+
+    navigator.geolocation.getCurrentPosition(function(position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+
+        map.setView([lat, lon], 14);
+
+        var userMarker = L.marker([lat, lon]).addTo(map)
+            .bindPopup("📍 You are here")
+            .openPopup();
+
+        markers.push(userMarker);
+
+        fetchPharmacies(lat, lon);
+    });
+
+    function searchPlace() {
+        var query = document.getElementById("searchBox").value;
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.length === 0) {
+                alert("No results found");
+                return;
+            }
+
+            clearMarkers();
+
+            var lat = data[0].lat;
+            var lon = data[0].lon;
+
+            map.setView([lat, lon], 14);
+
+            var marker = L.marker([lat, lon]).addTo(map)
+                .bindPopup("📍 " + query)
+                .openPopup();
+
+            markers.push(marker);
+
+            fetchPharmacies(lat, lon);
+        });
+    }
+
+    function fetchPharmacies(lat, lon) {
+        var query = `
+            [out:json];
+            node["amenity"="pharmacy"](around:2000, ${lat}, ${lon});
+            out;
+        `;
+
+        fetch("https://overpass-api.de/api/interpreter", {
+            method: "POST",
+            body: query
+        })
+        .then(res => res.json())
+        .then(data => {
+            data.elements.forEach(place => {
+                var name = place.tags.name || "Medical Store";
+
+                var m = L.marker([place.lat, place.lon])
+                    .addTo(map)
+                    .bindPopup("🏥 " + name);
+
+                markers.push(m);
+            });
+        });
+    }
+</script>
+
+</body>
+</html>

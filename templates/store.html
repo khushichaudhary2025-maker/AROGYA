@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arogya - Medicine Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>  
+<style>
+  :root {
+    --teal-dark:#0d6e7a; --teal:#1a9bab; --teal-light:#2ec4b6;
+    --green:#38b44a; --cream:#f4faf8; --dark:#0a2a2f;
+    --mid:#1c4a52; --text:#1a3a3f; --muted:#6b9aa0;
+    --border:rgba(26,155,171,0.15); --red:#e74c3c;
+    --orange:#f39c12;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text); }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:200;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 40px; background:rgba(244,250,248,0.97);
+    backdrop-filter:blur(16px); border-bottom:1px solid var(--border);
+  }
+  .nav-logo { display:flex; align-items:center; gap:8px; text-decoration:none; }
+  .nav-logo img { height:46px; object-fit:contain; }
+  .nav-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--teal-dark); letter-spacing:1px; }
+  .nav-right { display:flex; align-items:center; gap:16px; }
+  .nav-home { color:var(--teal-dark); font-size:13px; font-weight:600; text-decoration:none; }
+  .cart-btn {
+    position:relative; background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; border:none; padding:10px 22px; border-radius:50px;
+    font-family:'DM Sans',sans-serif; font-weight:700; font-size:14px;
+    cursor:pointer; display:flex; align-items:center; gap:8px;
+    box-shadow:0 4px 16px rgba(13,110,122,0.3); transition:all .2s;
+  }
+  .cart-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(13,110,122,0.4); }
+  .cart-count {
+    background:var(--red); color:white; border-radius:50%;
+    width:20px; height:20px; font-size:11px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* HERO BAND */
+  .store-hero {
+    background:linear-gradient(135deg,var(--teal-dark) 0%,var(--teal) 60%,var(--green) 100%);
+    padding:40px 40px 36px; color:white;
+  }
+  .store-hero h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:32px; letter-spacing:-1px; }
+  .store-hero p { opacity:.8; font-size:15px; margin-top:6px; margin-bottom:24px; }
+  .search-wrap {
+    display:flex; gap:12px; max-width:600px;
+  }
+  .search-wrap input {
+    flex:1; border:none; border-radius:50px; padding:13px 22px;
+    font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text);
+    outline:none; box-shadow:0 4px 20px rgba(0,0,0,0.1);
+  }
+  .btn-search-hero {
+    background:white; color:var(--teal-dark); border:none;
+    padding:13px 28px; border-radius:50px; font-weight:700;
+    font-size:14px; cursor:pointer; white-space:nowrap;
+    transition:all .2s;
+  }
+  .btn-search-hero:hover { background:var(--cream); }
+
+  /* FILTER TABS */
+  .filter-bar {
+    background:white; padding:16px 40px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    position:sticky; top:66px; z-index:100;
+    box-shadow:0 2px 12px rgba(13,110,122,0.05);
+  }
+  .filter-label { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-right:4px; }
+  .filter-btn {
+    border:1.5px solid var(--border); background:var(--cream);
+    color:var(--text); padding:7px 18px; border-radius:50px;
+    font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500;
+    cursor:pointer; transition:all .2s; white-space:nowrap;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; border-color:transparent;
+    box-shadow:0 3px 12px rgba(13,110,122,0.25);
+  }
+
+  /* MAIN LAYOUT */
+  .main-wrap { display:flex; min-height:calc(100vh - 200px); }
+
+  /* SIDEBAR FILTERS */
+  .sidebar-filter {
+    width:240px; flex-shrink:0; padding:24px 20px;
+    border-right:1px solid var(--border); background:white;
+  }
+  .sf-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:var(--dark); margin-bottom:16px; }
+  .sf-section { margin-bottom:24px; }
+  .sf-section-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+  .sf-option { display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; }
+  .sf-option input { accent-color:var(--teal); width:15px; height:15px; cursor:pointer; }
+  .sf-option label { font-size:13px; color:var(--text); cursor:pointer; }
+  .price-range { width:100%; accent-color:var(--teal); }
+
+  /* PRODUCTS GRID */
+  .products-area { flex:1; padding:28px 32px; }
+  .products-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+  .products-header h2 { font-family:'Syne',sans-serif; font-weight:700; font-size:18px; color:var(--dark); }
+  .sort-select {
+    border:1.5px solid var(--border); border-radius:10px; padding:8px 14px;
+    font-family:'DM Sans',sans-serif; font-size:13px; color:var(--text);
+    background:white; cursor:pointer; outline:none;
+  }
+
+  .products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:20px; }
+
+  /* MEDICINE CARD */
+  .med-card {
+    background:white; border-radius:20px; border:1px solid var(--border);
+    overflow:hidden; transition:transform .25s, box-shadow .25s;
+    cursor:pointer;
+  }
+  .med-card:hover { transform:translateY(-4px); box-shadow:0 16px 48px rgba(13,110,122,0.12); }
+
+  .med-card-top {
+    padding:20px 20px 0;
+    display:flex; align-items:flex-start; justify-content:space-between;
+  }
+  .med-icon {
+    width:52px; height:52px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center; font-size:24px;
+    flex-shrink:0;
+  }
+  .rx-badge {
+    background:#fff4e5; color:#c47a1a; font-size:10px; font-weight:700;
+    padding:3px 10px; border-radius:50px;
+  }
+  .otc-badge {
+    background:#e8f8ee; color:#1a7a3a; font-size:10px; font-weight:700;
+    padding:3px 10px; border-radius:50px;
+  }
+  .med-card-body { padding:14px 20px 20px; }
+  .med-name { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:var(--dark); margin-bottom:3px; }
+  .med-generic { font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .med-desc { font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:12px; }
+
+  .med-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
+  .med-tag {
+    background:rgba(26,155,171,0.08); color:var(--teal-dark);
+    font-size:10px; font-weight:600; padding:3px 9px; border-radius:50px;
+  }
+
+  .med-price-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .med-price { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--teal-dark); }
+  .med-price-unit { font-size:11px; color:var(--muted); }
+  .med-mrp { font-size:11px; color:var(--muted); text-decoration:line-through; }
+  .med-discount { background:#e8f8ee; color:#1a7a3a; font-size:10px; font-weight:700; padding:2px 8px; border-radius:50px; }
+
+  .med-stock { font-size:11px; margin-bottom:14px; }
+  .in-stock { color:#1a7a3a; font-weight:600; }
+  .out-stock { color:var(--red); font-weight:600; }
+
+  .med-actions { display:flex; gap:8px; }
+  .btn-details {
+    flex:1; background:var(--cream); color:var(--teal-dark);
+    border:1.5px solid var(--border); padding:9px; border-radius:10px;
+    font-size:12px; font-weight:600; cursor:pointer; transition:all .2s;
+  }
+  .btn-details:hover { border-color:var(--teal); }
+  .btn-cart {
+    flex:2; background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; border:none; padding:9px; border-radius:10px;
+    font-size:12px; font-weight:700; cursor:pointer; transition:all .2s;
+  }
+  .btn-cart:hover { box-shadow:0 4px 16px rgba(13,110,122,0.35); transform:translateY(-1px); }
+  .btn-cart:disabled { background:#ccc; cursor:not-allowed; transform:none; box-shadow:none; }
+  .btn-cart.added { background:linear-gradient(135deg,#1a7a3a,#38b44a); }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(10,42,47,0.55);
+    z-index:1000; display:flex; align-items:center; justify-content:center;
+    padding:20px; opacity:0; pointer-events:none; transition:opacity .3s;
+    backdrop-filter:blur(4px);
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal {
+    background:white; border-radius:28px; max-width:580px; width:100%;
+    max-height:90vh; overflow-y:auto; transform:translateY(20px);
+    transition:transform .3s; box-shadow:0 32px 100px rgba(13,110,122,0.25);
+  }
+  .modal-overlay.open .modal { transform:translateY(0); }
+  .modal::-webkit-scrollbar { width:4px; }
+  .modal::-webkit-scrollbar-thumb { background:var(--teal-light); border-radius:4px; }
+
+  .modal-header {
+    background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    padding:28px 32px; color:white; border-radius:28px 28px 0 0;
+    display:flex; align-items:flex-start; justify-content:space-between;
+  }
+  .modal-header h2 { font-family:'Syne',sans-serif; font-weight:800; font-size:22px; }
+  .modal-header p { opacity:.8; font-size:13px; margin-top:4px; }
+  .modal-close {
+    background:rgba(255,255,255,0.2); border:none; color:white;
+    width:32px; height:32px; border-radius:50%; font-size:16px;
+    cursor:pointer; flex-shrink:0; transition:background .2s;
+  }
+  .modal-close:hover { background:rgba(255,255,255,0.35); }
+  .modal-body { padding:28px 32px; }
+
+  .modal-price-row { display:flex; align-items:center; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+  .modal-price { font-family:'Syne',sans-serif; font-weight:800; font-size:28px; color:var(--teal-dark); }
+  .modal-mrp { font-size:14px; color:var(--muted); text-decoration:line-through; }
+  .modal-save { background:#e8f8ee; color:#1a7a3a; font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px; }
+
+  .info-section { margin-bottom:22px; }
+  .info-section-title {
+    font-family:'Syne',sans-serif; font-weight:700; font-size:14px;
+    color:var(--dark); margin-bottom:10px;
+    display:flex; align-items:center; gap:6px;
+    padding-bottom:8px; border-bottom:1px solid var(--border);
+  }
+  .info-list { list-style:none; }
+  .info-list li {
+    font-size:13px; color:var(--text); padding:5px 0;
+    display:flex; align-items:flex-start; gap:8px; line-height:1.5;
+  }
+  .info-list li::before { content:'•'; color:var(--teal); font-weight:800; flex-shrink:0; margin-top:1px; }
+  .side-effect-list li::before { content:'⚠'; color:var(--orange); font-size:11px; flex-shrink:0; }
+  .warning-box {
+    background:#fff8e1; border:1px solid #ffe082; border-radius:12px;
+    padding:12px 16px; font-size:12px; color:#7a5c00; line-height:1.6;
+    margin-bottom:16px;
+  }
+  .modal-qty-row { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+  .qty-label { font-size:13px; font-weight:600; color:var(--text); }
+  .qty-ctrl { display:flex; align-items:center; gap:0; border:1.5px solid var(--border); border-radius:10px; overflow:hidden; }
+  .qty-btn { background:var(--cream); border:none; width:36px; height:36px; font-size:18px; cursor:pointer; color:var(--teal-dark); font-weight:700; transition:background .2s; }
+  .qty-btn:hover { background:rgba(26,155,171,0.1); }
+  .qty-val { width:40px; text-align:center; font-weight:700; font-size:15px; color:var(--dark); }
+  .btn-add-modal {
+    width:100%; background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; border:none; padding:15px; border-radius:14px;
+    font-family:'DM Sans',sans-serif; font-weight:700; font-size:15px;
+    cursor:pointer; transition:all .2s;
+    box-shadow:0 6px 24px rgba(13,110,122,0.3);
+  }
+  .btn-add-modal:hover { transform:translateY(-2px); box-shadow:0 10px 32px rgba(13,110,122,0.4); }
+
+  /* CART DRAWER */
+  .cart-drawer {
+    position:fixed; right:0; top:0; bottom:0; width:380px;
+    background:white; z-index:300; transform:translateX(100%);
+    transition:transform .3s; box-shadow:-8px 0 40px rgba(13,110,122,0.15);
+    display:flex; flex-direction:column;
+  }
+  .cart-drawer.open { transform:translateX(0); }
+  .cart-header {
+    background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    padding:24px 24px 20px; color:white;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .cart-header h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:18px; }
+  .cart-close { background:rgba(255,255,255,0.2); border:none; color:white; width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; }
+  .cart-items { flex:1; overflow-y:auto; padding:16px; }
+  .cart-items::-webkit-scrollbar { width:3px; }
+  .cart-items::-webkit-scrollbar-thumb { background:var(--teal-light); }
+  .cart-item { display:flex; align-items:center; gap:12px; padding:12px; background:var(--cream); border-radius:14px; margin-bottom:10px; }
+  .ci-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; background:white; flex-shrink:0; }
+  .ci-info { flex:1; }
+  .ci-name { font-size:13px; font-weight:600; color:var(--dark); }
+  .ci-price { font-size:12px; color:var(--teal-dark); font-weight:700; }
+  .ci-qty { display:flex; align-items:center; gap:6px; }
+  .ci-qty-btn { background:white; border:1px solid var(--border); width:24px; height:24px; border-radius:6px; font-size:14px; cursor:pointer; color:var(--teal-dark); font-weight:700; }
+  .ci-qty-val { font-size:13px; font-weight:700; color:var(--dark); min-width:20px; text-align:center; }
+  .ci-remove { background:none; border:none; color:#ccc; font-size:16px; cursor:pointer; padding:4px; transition:color .2s; }
+  .ci-remove:hover { color:var(--red); }
+  .cart-empty { text-align:center; padding:60px 20px; color:var(--muted); }
+  .cart-empty div { font-size:48px; margin-bottom:12px; }
+  .cart-footer { padding:20px; border-top:1px solid var(--border); }
+  .cart-total-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .cart-total-label { font-size:14px; color:var(--muted); }
+  .cart-total-val { font-family:'Syne',sans-serif; font-weight:800; font-size:22px; color:var(--teal-dark); }
+  .btn-checkout {
+    width:100%; background:linear-gradient(135deg,var(--teal-dark),var(--teal));
+    color:white; border:none; padding:15px; border-radius:14px;
+    font-family:'DM Sans',sans-serif; font-weight:700; font-size:15px;
+    cursor:pointer; transition:all .2s; box-shadow:0 6px 24px rgba(13,110,122,0.3);
+  }
+  .btn-checkout:hover { transform:translateY(-2px); }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--dark); color:white; padding:12px 24px; border-radius:50px;
+    font-size:13px; font-weight:600; z-index:9999; opacity:0;
+    transition:all .3s; pointer-events:none; white-space:nowrap;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* NO RESULTS */
+  .no-results { text-align:center; padding:60px 20px; color:var(--muted); grid-column:1/-1; }
+  .no-results div { font-size:48px; margin-bottom:12px; }
+
+  @media(max-width:900px) {
+    .sidebar-filter { display:none; }
+    .filter-bar { top:60px; padding:12px 20px; }
+    .products-area { padding:20px; }
+    .store-hero { padding:28px 20px; }
+    nav { padding:10px 20px; }
+    .cart-drawer { width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="/static/arogya.jpeg" alt="Arogya">
+    <span>AROGYA</span>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-home">&#8592; Home</a>
+    <button class="cart-btn" onclick="toggleCart()">
+      &#128717; My Cart
+      <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- STORE HERO -->
+<div class="store-hero">
+  <h1>&#128138; Medicine Store</h1>
+  <p>500+ medicines with benefits, side effects &amp; expert info</p>
+  <div class="search-wrap">
+    <input type="text" id="searchBox" placeholder="Search medicine, disease, ingredient..." oninput="filterMeds()">
+    <button class="btn-search-hero" onclick="filterMeds()">Search</button>
+  </div>
+</div>
+
+<!-- FILTER TABS -->
+<div class="filter-bar">
+  <span class="filter-label">Category:</span>
+  <button class="filter-btn active" onclick="setCategory('all',this)">All</button>
+  <button class="filter-btn" onclick="setCategory('tablet',this)">Tablets</button>
+  <button class="filter-btn" onclick="setCategory('syrup',this)">Syrups</button>
+  <button class="filter-btn" onclick="setCategory('injection',this)">Injections</button>
+  <button class="filter-btn" onclick="setCategory('cream',this)">Creams</button>
+  <button class="filter-btn" onclick="setCategory('drops',this)">Drops</button>
+  <button class="filter-btn" onclick="setCategory('capsule',this)">Capsules</button>
+  <button class="filter-btn" onclick="setCategory('otc',this)">OTC</button>
+</div>
+
+<!-- MAIN -->
+<div class="main-wrap">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar-filter">
+    <div class="sf-title">&#127775; Filters</div>
+
+    <div class="sf-section">
+      <div class="sf-section-label">Price Range</div>
+      <input type="range" class="price-range" id="priceRange" min="0" max="1000" value="1000" oninput="filterMeds()">
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Up to &#8377;<span id="priceLabel">1000</span></div>
+    </div>
+
+    <div class="sf-section">
+      <div class="sf-section-label">Availability</div>
+      <div class="sf-option"><input type="checkbox" id="inStockOnly" onchange="filterMeds()"><label for="inStockOnly">In Stock Only</label></div>
+      <div class="sf-option"><input type="checkbox" id="otcOnly" onchange="filterMeds()"><label for="otcOnly">OTC (No Prescription)</label></div>
+    </div>
+
+    <div class="sf-section">
+      <div class="sf-section-label">Sort By</div>
+      <div class="sf-option"><input type="radio" name="sort" id="s1" value="default" checked onchange="filterMeds()"><label for="s1">Default</label></div>
+      <div class="sf-option"><input type="radio" name="sort" id="s2" value="price_asc" onchange="filterMeds()"><label for="s2">Price: Low to High</label></div>
+      <div class="sf-option"><input type="radio" name="sort" id="s3" value="price_desc" onchange="filterMeds()"><label for="s3">Price: High to Low</label></div>
+      <div class="sf-option"><input type="radio" name="sort" id="s4" value="discount" onchange="filterMeds()"><label for="s4">Best Discount</label></div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div class="products-area">
+    <div class="products-header">
+      <h2 id="resultsTitle">Showing all medicines</h2>
+      <select class="sort-select" onchange="filterMeds()">
+        <option value="default">Sort: Default</option>
+        <option value="price_asc">Price: Low to High</option>
+        <option value="price_desc">Price: High to Low</option>
+        <option value="discount">Best Discount</option>
+      </select>
+    </div>
+    <div class="products-grid" id="productsGrid"></div>
+  </div>
+</div>
+
+<!-- MEDICINE DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="mName"></h2>
+        <p id="mGeneric"></p>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-price-row">
+        <span class="modal-price" id="mPrice"></span>
+        <span class="modal-mrp" id="mMrp"></span>
+        <span class="modal-save" id="mSave"></span>
+      </div>
+
+      <div class="warning-box" id="mWarning"></div>
+
+      <div class="info-section">
+        <div class="info-section-title">&#9989; Benefits &amp; Uses</div>
+        <ul class="info-list" id="mBenefits"></ul>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">&#9888;&#65039; Side Effects</div>
+        <ul class="info-list side-effect-list" id="mSideEffects"></ul>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">&#128204; How to Use</div>
+        <ul class="info-list" id="mUsage"></ul>
+      </div>
+
+      <div class="modal-qty-row">
+        <span class="qty-label">Quantity:</span>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(-1)">&#8722;</button>
+          <span class="qty-val" id="modalQty">1</span>
+          <button class="qty-btn" onclick="changeQty(1)">&#43;</button>
+        </div>
+        <span style="font-size:13px;color:var(--muted)" id="modalTotal"></span>
+      </div>
+
+      <button class="btn-add-modal" id="modalCartBtn" onclick="addFromModal()">&#43; Add to Cart</button>
+    </div>
+  </div>
+</div>
+
+<!-- CART DRAWER -->
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-header">
+    <h3>&#128717; My Cart</h3>
+    <button class="cart-close" onclick="toggleCart()">&#10005;</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty"><div>&#128717;</div><p>Your cart is empty</p></div>
+  </div>
+  <div class="cart-footer" id="cartFooter" style="display:none">
+    <div class="cart-total-row">
+      <span class="cart-total-label">Total Amount</span>
+      <span class="cart-total-val" id="cartTotal">&#8377;0</span>
+    </div>
+    <button class="btn-checkout" onclick="checkout()">Proceed to Checkout &#8594;</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── MEDICINE DATABASE ──
+const MEDICINES = [
+  {
+    id:1, name:"Paracetamol 500mg", generic:"Acetaminophen", category:"tablet", icon:"&#128138;",
+    price:12, mrp:18, discount:33, inStock:true, rxRequired:false,
+    desc:"Common pain reliever and fever reducer for everyday use.",
+    tags:["Pain Relief","Fever","Headache"],
+    warning:"Do not exceed 4 doses in 24 hours. Avoid alcohol while taking this medicine.",
+    benefits:["Reduces fever effectively","Relieves mild to moderate pain","Safe for adults and children","Works within 30 minutes"],
+    sideEffects:["Nausea (rare)","Liver damage if overdosed","Allergic rash (very rare)","Stomach upset"],
+    usage:["Take 1-2 tablets every 4-6 hours","Do not crush or chew","Take with or without food","Maximum 8 tablets per day"]
+  },
+  {
+    id:2, name:"Azithromycin 250mg", generic:"Azithromycin", category:"tablet", icon:"&#128138;",
+    price:85, mrp:120, discount:29, inStock:true, rxRequired:true,
+    desc:"Antibiotic used to treat bacterial infections including chest, throat and ear infections.",
+    tags:["Antibiotic","Infection","Throat"],
+    warning:"Prescription required. Complete the full course even if symptoms improve.",
+    benefits:["Treats bacterial chest infections","Effective against throat infections","Works on ear infections","Treats skin infections"],
+    sideEffects:["Diarrhoea","Nausea and vomiting","Stomach cramps","Headache","Dizziness"],
+    usage:["Take once daily as prescribed","Take on empty stomach for best results","Complete the full 3-5 day course","Do not skip doses"]
+  },
+  {
+    id:3, name:"Cetrizine 10mg", generic:"Cetirizine HCl", category:"tablet", icon:"&#128138;",
+    price:18, mrp:25, discount:28, inStock:true, rxRequired:false,
+    desc:"Antihistamine for allergies, hay fever, hives and runny nose.",
+    tags:["Allergy","Antihistamine","Itching"],
+    warning:"May cause drowsiness. Avoid driving after taking this medicine.",
+    benefits:["Relieves sneezing and runny nose","Reduces skin itching and hives","Non-drowsy formula (low dose)","Effective for seasonal allergies"],
+    sideEffects:["Drowsiness","Dry mouth","Headache","Stomach pain","Fatigue"],
+    usage:["Take 1 tablet once daily at night","Can be taken with or without food","Avoid alcohol","Not for children under 6 years"]
+  },
+  {
+    id:4, name:"Metformin 500mg", generic:"Metformin HCl", category:"tablet", icon:"&#128138;",
+    price:32, mrp:48, discount:33, inStock:true, rxRequired:true,
+    desc:"First-line medication for Type 2 diabetes. Controls blood sugar levels.",
+    tags:["Diabetes","Blood Sugar","Type 2"],
+    warning:"Prescription required. Monitor blood sugar regularly. Do not crush.",
+    benefits:["Lowers blood glucose levels","Reduces diabetes complications","Helps with weight management","Improves insulin sensitivity"],
+    sideEffects:["Nausea","Diarrhoea","Stomach upset","Vitamin B12 deficiency (long term)","Lactic acidosis (rare)"],
+    usage:["Take with meals to reduce stomach upset","Start with low dose as prescribed","Take at same time every day","Regular blood tests needed"]
+  },
+  {
+    id:5, name:"Omeprazole 20mg", generic:"Omeprazole", category:"capsule", icon:"&#128137;",
+    price:45, mrp:65, discount:31, inStock:true, rxRequired:false,
+    desc:"Proton pump inhibitor for acidity, heartburn, GERD and stomach ulcers.",
+    tags:["Acidity","GERD","Heartburn"],
+    warning:"Take 30 minutes before meals. Not for long-term use without doctor advice.",
+    benefits:["Reduces stomach acid effectively","Heals stomach and duodenal ulcers","Relieves heartburn within hours","Prevents acid reflux"],
+    sideEffects:["Headache","Diarrhoea","Stomach pain","Nausea","Low magnesium (long term)"],
+    usage:["Take 30 minutes before breakfast","Swallow capsule whole, do not crush","Usually taken for 4-8 weeks","Avoid spicy and oily foods"]
+  },
+  {
+    id:6, name:"Amoxicillin 500mg", generic:"Amoxicillin", category:"capsule", icon:"&#128137;",
+    price:72, mrp:100, discount:28, inStock:true, rxRequired:true,
+    desc:"Penicillin antibiotic for bacterial infections of ear, throat, lungs and UTI.",
+    tags:["Antibiotic","UTI","Throat"],
+    warning:"Prescription required. Inform doctor about penicillin allergy before taking.",
+    benefits:["Treats ear and throat infections","Effective for urinary tract infections","Works for chest infections","Treats skin and dental infections"],
+    sideEffects:["Diarrhoea","Rash","Nausea","Vomiting","Severe allergic reaction (rare)"],
+    usage:["Take every 8 hours as prescribed","Can be taken with or without food","Complete the full course","Store in cool dry place"]
+  },
+  {
+    id:7, name:"Cough Syrup (Benadryl)", generic:"Diphenhydramine", category:"syrup", icon:"&#129514;",
+    price:95, mrp:130, discount:27, inStock:true, rxRequired:false,
+    desc:"Effective cough suppressant and expectorant for dry and wet cough.",
+    tags:["Cough","Cold","Expectorant"],
+    warning:"Do not give to children under 2 years. May cause drowsiness.",
+    benefits:["Relieves dry and productive cough","Soothes irritated throat","Reduces cough frequency","Works on cold-related cough"],
+    sideEffects:["Drowsiness","Dry mouth","Blurred vision","Difficulty urinating","Dizziness"],
+    usage:["Adults: 10ml three times daily","Children 6-12 years: 5ml three times daily","Shake well before use","Take after meals"]
+  },
+  {
+    id:8, name:"ORS Sachets (Electral)", generic:"Oral Rehydration Salts", category:"syrup", icon:"&#129514;",
+    price:28, mrp:35, discount:20, inStock:true, rxRequired:false,
+    desc:"Oral rehydration salt to treat dehydration from diarrhoea, vomiting and fever.",
+    tags:["Dehydration","Diarrhoea","Electrolytes"],
+    warning:"Dissolve in 1 litre of clean boiled water. Do not add more water.",
+    benefits:["Quickly restores body fluids","Replenishes lost electrolytes","Safe for all age groups","Prevents dehydration complications"],
+    sideEffects:["Nausea if taken too fast","Vomiting (rarely)","High sodium if overdosed"],
+    usage:["Dissolve 1 sachet in 1 litre boiled water","Sip slowly over 8-12 hours","Prepare fresh each time","Give small amounts frequently to children"]
+  },
+  {
+    id:9, name:"Betadine Antiseptic", generic:"Povidone Iodine 10%", category:"cream", icon:"&#129520;",
+    price:65, mrp:90, discount:28, inStock:true, rxRequired:false,
+    desc:"Antiseptic solution for cuts, wounds, burns and skin infections.",
+    tags:["Antiseptic","Wound","Skin"],
+    warning:"For external use only. Do not use on deep wounds without doctor advice.",
+    benefits:["Kills bacteria and fungi on wounds","Prevents wound infection","Fast acting antiseptic","Safe for minor cuts and burns"],
+    sideEffects:["Skin irritation (rare)","Stains skin and clothing","Burning sensation on open wounds","Allergic reaction (rare)"],
+    usage:["Clean wound with water first","Apply with cotton directly on wound","Cover with bandage if needed","Use 2-3 times daily"]
+  },
+  {
+    id:10, name:"Candid-B Cream", generic:"Clotrimazole + Beclomethasone", category:"cream", icon:"&#129520;",
+    price:88, mrp:115, discount:23, inStock:true, rxRequired:false,
+    desc:"Antifungal and steroid cream for skin infections, ringworm and eczema.",
+    tags:["Antifungal","Skin","Ringworm"],
+    warning:"Do not use on face or broken skin. Avoid eyes. Not for children under 2.",
+    benefits:["Treats fungal skin infections","Reduces itching and redness","Effective for ringworm","Works on eczema and dermatitis"],
+    sideEffects:["Burning or stinging","Skin thinning (long-term use)","Stretch marks","Increased hair growth","Skin discolouration"],
+    usage:["Apply thin layer on affected area","Use twice daily morning and night","Wash hands after applying","Do not use for more than 4 weeks"]
+  },
+  {
+    id:11, name:"Eye Drops (Systane)", generic:"Polyethylene Glycol", category:"drops", icon:"&#128065;",
+    price:185, mrp:240, discount:23, inStock:true, rxRequired:false,
+    desc:"Lubricating eye drops for dry eyes, redness and eye irritation.",
+    tags:["Eyes","Dry Eyes","Lubrication"],
+    warning:"Do not touch dropper tip to eye or any surface. Remove contact lenses first.",
+    benefits:["Provides immediate relief from dry eyes","Reduces redness and irritation","Long-lasting moisture","Safe for daily use"],
+    sideEffects:["Temporary blurred vision after instillation","Mild eye irritation","Sticky feeling"],
+    usage:["Instil 1-2 drops in affected eye","Use 3-4 times daily or as needed","Tilt head back and look up","Close eye gently after instillation"]
+  },
+  {
+    id:12, name:"Nasivion Nasal Drops", generic:"Oxymetazoline 0.05%", category:"drops", icon:"&#128065;",
+    price:55, mrp:75, discount:27, inStock:true, rxRequired:false,
+    desc:"Nasal decongestant drops for blocked nose, sinusitis and nasal congestion.",
+    tags:["Nasal","Congestion","Sinusitis"],
+    warning:"Do not use for more than 3 days continuously. Rebound congestion may occur.",
+    benefits:["Clears blocked nose quickly","Relieves sinus pressure","Works within minutes","Effective for cold-related congestion"],
+    sideEffects:["Rebound congestion if overused","Burning or stinging sensation","Dryness in nose","Sneezing"],
+    usage:["2-3 drops in each nostril","Use twice daily, morning and night","Blow nose before application","Do not use more than 3 consecutive days"]
+  },
+  {
+    id:13, name:"Vitamin D3 60000 IU", generic:"Cholecalciferol", category:"capsule", icon:"&#128137;",
+    price:42, mrp:60, discount:30, inStock:true, rxRequired:false,
+    desc:"Vitamin D3 supplement for bone health, immunity and calcium absorption.",
+    tags:["Vitamin D","Bone Health","Immunity"],
+    warning:"Take once a week or as prescribed. Do not exceed recommended dose.",
+    benefits:["Strengthens bones and teeth","Boosts immune system","Improves calcium absorption","Reduces risk of osteoporosis","Improves mood and energy"],
+    sideEffects:["Nausea if overdosed","Constipation","Weakness","Excessive thirst","Kidney problems (overdose)"],
+    usage:["Take 1 capsule once a week","Take with a fatty meal for better absorption","Regular blood tests to monitor levels","Store away from sunlight"]
+  },
+  {
+    id:14, name:"Iron + Folic Acid", generic:"Ferrous Sulphate + Folic Acid", category:"tablet", icon:"&#128138;",
+    price:38, mrp:55, discount:31, inStock:true, rxRequired:false,
+    desc:"Iron and folic acid supplement for anaemia, pregnancy and iron deficiency.",
+    tags:["Iron","Anaemia","Pregnancy","Folic Acid"],
+    warning:"May cause dark stools - this is normal. Keep away from children.",
+    benefits:["Treats iron deficiency anaemia","Essential during pregnancy","Improves haemoglobin levels","Boosts energy and reduces fatigue","Supports fetal development"],
+    sideEffects:["Dark or black stools","Constipation","Nausea","Stomach cramps","Diarrhoea"],
+    usage:["Take 1 tablet daily after meals","Take with Vitamin C juice for better absorption","Do not take with tea or coffee","Take at same time each day"]
+  },
+  {
+    id:15, name:"Dolo 650mg", generic:"Paracetamol 650mg", category:"tablet", icon:"&#128138;",
+    price:22, mrp:30, discount:27, inStock:true, rxRequired:false,
+    desc:"Higher dose paracetamol for stronger fever and pain relief including viral fever.",
+    tags:["Fever","Pain","Viral Fever"],
+    warning:"Do not take with other paracetamol products. Max 3 tablets per day.",
+    benefits:["Effective for high fever","Works on body aches","Suitable for viral fever","Faster action than 500mg variant"],
+    sideEffects:["Liver damage if overdosed","Nausea","Skin rash (rare)","Low blood pressure (rare)"],
+    usage:["1 tablet every 8 hours","Maximum 3 tablets in 24 hours","Take with water","Do not crush or break"]
+  },
+  {
+    id:16, name:"B-Complex Capsules", generic:"Vitamin B1,B2,B6,B12,Niacin", category:"capsule", icon:"&#128137;",
+    price:55, mrp:75, discount:27, inStock:true, rxRequired:false,
+    desc:"Complete B-Vitamin complex for energy, nervous system and skin health.",
+    tags:["Vitamins","Energy","Nerve Health"],
+    warning:"Urine may turn yellow - this is normal and harmless.",
+    benefits:["Boosts energy and reduces fatigue","Supports nervous system health","Improves skin, hair and nails","Aids metabolism","Reduces stress and anxiety"],
+    sideEffects:["Yellow urine (harmless)","Nausea if taken on empty stomach","Skin flushing","Headache"],
+    usage:["Take 1 capsule daily with breakfast","Take with food to avoid nausea","Best taken in the morning","Consistent daily intake needed"]
+  },
+  {
+    id:17, name:"Insulin Syringe 1ml", generic:"Disposable Insulin Syringe", category:"injection", icon:"&#128137;",
+    price:15, mrp:20, discount:25, inStock:true, rxRequired:false,
+    desc:"Single-use insulin syringe with ultra-fine needle for diabetes management.",
+    tags:["Diabetes","Insulin","Syringe"],
+    warning:"Single use only. Do not reuse. Dispose safely in sharps container.",
+    benefits:["Ultra-fine needle for painless injection","Accurate dose measurement","Sterile and safe","Suitable for all insulin types"],
+    sideEffects:["Bruising at injection site","Pain if needle is reused","Infection if not sterile"],
+    usage:["Use once and discard","Rotate injection sites","Clean injection area with alcohol","Pinch skin before injecting"]
+  },
+  {
+    id:18, name:"Dettol Antiseptic Liquid", generic:"Chloroxylenol 4.8%", category:"cream", icon:"&#129520;",
+    price:115, mrp:150, discount:23, inStock:true, rxRequired:false,
+    desc:"Multi-purpose antiseptic liquid for wounds, bathing and surface disinfection.",
+    tags:["Antiseptic","Disinfectant","Wound"],
+    warning:"Always dilute before use. Do not apply concentrated liquid directly on skin.",
+    benefits:["Kills 99.9% germs and bacteria","Prevents wound infection","Can be used for bathing","Works on cuts and scrapes"],
+    sideEffects:["Skin irritation if not diluted","Toxic if swallowed","Eye irritation"],
+    usage:["Dilute 1 cap in 500ml water for wounds","Add 2 caps to bath water","Apply diluted solution with cotton","Do not use undiluted on skin"]
+  },
+  {
+    id:19, name:"Pantoprazole 40mg", generic:"Pantoprazole Sodium", category:"tablet", icon:"&#128138;",
+    price:38, mrp:55, discount:31, inStock:false, rxRequired:true,
+    desc:"Stronger proton pump inhibitor for severe acidity, GERD and peptic ulcers.",
+    tags:["Acidity","GERD","Ulcer"],
+    warning:"Prescription required. Take before meals. Not for long-term without supervision.",
+    benefits:["Stronger acid suppression than omeprazole","Heals peptic ulcers faster","Effective for severe GERD","Long-lasting acid control"],
+    sideEffects:["Headache","Diarrhoea","Nausea","Abdominal pain","Low magnesium (long term)"],
+    usage:["Take 30-60 minutes before meals","Swallow whole, do not crush","Usually taken for 4-8 weeks","Take at same time daily"]
+  },
+  {
+    id:20, name:"Calamine Lotion 100ml", generic:"Calamine + Zinc Oxide", category:"cream", icon:"&#129520;",
+    price:75, mrp:100, discount:25, inStock:true, rxRequired:false,
+    desc:"Soothing lotion for itchy rashes, chickenpox, sunburn and insect bites.",
+    tags:["Itching","Rash","Sunburn","Skin"],
+    warning:"Shake well before use. For external use only. Keep away from eyes.",
+    benefits:["Relieves itching from rashes","Soothes sunburned skin","Helps with chickenpox itching","Dries out weeping skin lesions","Insect bite relief"],
+    sideEffects:["Mild skin dryness","White residue on skin","Rare skin irritation"],
+    usage:["Shake bottle well before use","Apply thin layer to affected area","Allow to dry completely","Apply 2-3 times daily"]
+  },
+];
+
+let cart = [];
+let currentCategory = 'all';
+let currentMed = null;
+let modalQty = 1;
+
+// ── RENDER MEDICINES ──
+function renderMedicines(meds) {
+  const grid = document.getElementById('productsGrid');
+  document.getElementById('resultsTitle').textContent =
+    `Showing ${meds.length} medicine${meds.length !== 1 ? 's' : ''}`;
+
+  if(meds.length === 0) {
+    grid.innerHTML = `<div class="no-results"><div>&#128214;</div><p>No medicines found.<br>Try a different search.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = meds.map(m => {
+    const inCart = cart.find(c => c.id === m.id);
+    return `
+    <div class="med-card" onclick="openModal(${m.id})">
+      <div class="med-card-top">
+        <div class="med-icon" style="background:rgba(26,155,171,0.08)">${m.icon}</div>
+        <span class="${m.rxRequired ? 'rx-badge' : 'otc-badge'}">${m.rxRequired ? 'Rx' : 'OTC'}</span>
+      </div>
+      <div class="med-card-body">
+        <div class="med-name">${m.name}</div>
+        <div class="med-generic">${m.generic}</div>
+        <div class="med-desc">${m.desc}</div>
+        <div class="med-tags">${m.tags.map(t=>`<span class="med-tag">${t}</span>`).join('')}</div>
+        <div class="med-price-row">
+          <div>
+            <span class="med-price">&#8377;${m.price}</span>
+            <span class="med-price-unit"> /strip</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="med-mrp">&#8377;${m.mrp}</span>
+            <span class="med-discount">${m.discount}% off</span>
+          </div>
+        </div>
+        <div class="med-stock">
+          ${m.inStock
+            ? `<span class="in-stock">&#10003; In Stock</span>`
+            : `<span class="out-stock">&#10007; Out of Stock</span>`}
+        </div>
+        <div class="med-actions">
+          <button class="btn-details" onclick="event.stopPropagation();openModal(${m.id})">Details</button>
+          <button class="btn-cart ${inCart ? 'added' : ''}"
+            onclick="event.stopPropagation();quickAdd(${m.id})"
+            ${!m.inStock ? 'disabled' : ''}>
+            ${inCart ? '&#10003; Added' : '&#43; Add to Cart'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FILTER ──
+function filterMeds() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const maxPrice = parseInt(document.getElementById('priceRange')?.value || 1000);
+  document.getElementById('priceLabel').textContent = maxPrice;
+  const inStockOnly = document.getElementById('inStockOnly')?.checked;
+  const otcOnly = document.getElementById('otcOnly')?.checked;
+  const sortVal = document.querySelector('input[name="sort"]:checked')?.value || 'default';
+
+  let filtered = MEDICINES.filter(m => {
+    const matchCat = currentCategory === 'all' || m.category === currentCategory || (currentCategory === 'otc' && !m.rxRequired);
+    const matchQ = !q || m.name.toLowerCase().includes(q) || m.generic.toLowerCase().includes(q) || m.tags.some(t=>t.toLowerCase().includes(q)) || m.desc.toLowerCase().includes(q);
+    const matchPrice = m.price <= maxPrice;
+    const matchStock = !inStockOnly || m.inStock;
+    const matchOtc = !otcOnly || !m.rxRequired;
+    return matchCat && matchQ && matchPrice && matchStock && matchOtc;
+  });
+
+  if(sortVal === 'price_asc') filtered.sort((a,b) => a.price - b.price);
+  else if(sortVal === 'price_desc') filtered.sort((a,b) => b.price - a.price);
+  else if(sortVal === 'discount') filtered.sort((a,b) => b.discount - a.discount);
+
+  renderMedicines(filtered);
+}
+
+function setCategory(cat, btn) {
+  currentCategory = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterMeds();
+}
+
+// ── MODAL ──
+function openModal(id) {
+  const m = MEDICINES.find(x => x.id === id);
+  if(!m) return;
+  currentMed = m;
+  modalQty = 1;
+
+  document.getElementById('mName').textContent = m.name;
+  document.getElementById('mGeneric').textContent = m.generic + (m.rxRequired ? ' • Prescription Required' : ' • OTC');
+  document.getElementById('mPrice').innerHTML = `&#8377;${m.price}`;
+  document.getElementById('mMrp').innerHTML = `MRP &#8377;${m.mrp}`;
+  document.getElementById('mSave').textContent = `Save &#8377;${m.mrp - m.price} (${m.discount}% off)`;
+  document.getElementById('mWarning').textContent = '⚠ ' + m.warning;
+  document.getElementById('mBenefits').innerHTML = m.benefits.map(b=>`<li>${b}</li>`).join('');
+  document.getElementById('mSideEffects').innerHTML = m.sideEffects.map(s=>`<li>${s}</li>`).join('');
+  document.getElementById('mUsage').innerHTML = m.usage.map(u=>`<li>${u}</li>`).join('');
+  document.getElementById('modalQty').textContent = 1;
+  document.getElementById('modalTotal').textContent = `Total: ₹${m.price}`;
+
+  const inCart = cart.find(c => c.id === m.id);
+  const btn = document.getElementById('modalCartBtn');
+  btn.textContent = inCart ? '✓ Already in Cart — Add More' : '+ Add to Cart';
+  btn.style.background = inCart
+    ? 'linear-gradient(135deg,#1a7a3a,#38b44a)'
+    : 'linear-gradient(135deg,var(--teal-dark),var(--teal))';
+
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(e) {
+  if(e.target === document.getElementById('modalOverlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function changeQty(delta) {
+  modalQty = Math.max(1, Math.min(99, modalQty + delta));
+  document.getElementById('modalQty').textContent = modalQty;
+  if(currentMed) document.getElementById('modalTotal').textContent = `Total: ₹${currentMed.price * modalQty}`;
+}
+
+function addFromModal() {
+  if(!currentMed) return;
+  addToCart(currentMed.id, modalQty);
+  closeModalDirect();
+}
+
+// ── CART ──
+function quickAdd(id) {
+  addToCart(id, 1);
+}
+
+function addToCart(id, qty) {
+  const m = MEDICINES.find(x => x.id === id);
+  if(!m || !m.inStock) return;
+  const existing = cart.find(c => c.id === id);
+  if(existing) {
+    existing.qty += qty;
+  } else {
+    cart.push({ ...m, qty });
+  }
+  updateCart();
+  showToast(`${m.name} added to cart!`);
+  filterMeds();
+}
+
+function removeFromCart(id) {
+  cart = cart.filter(c => c.id !== id);
+  updateCart();
+  filterMeds();
+}
+
+function changeCartQty(id, delta) {
+  const item = cart.find(c => c.id === id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty <= 0) removeFromCart(id);
+  else updateCart();
+}
+
+function updateCart() {
+  const count = cart.reduce((s,c) => s + c.qty, 0);
+  const total = cart.reduce((s,c) => s + c.price * c.qty, 0);
+
+  document.getElementById('cartCount').textContent = count;
+
+  const itemsEl = document.getElementById('cartItems');
+  const footerEl = document.getElementById('cartFooter');
+
+  if(cart.length === 0) {
+    itemsEl.innerHTML = `<div class="cart-empty"><div>&#128717;</div><p>Your cart is empty</p></div>`;
+    footerEl.style.display = 'none';
+    return;
+  }
+
+  footerEl.style.display = 'block';
+  document.getElementById('cartTotal').innerHTML = `&#8377;${total}`;
+
+  itemsEl.innerHTML = cart.map(item => `
+    <div class="cart-item">
+      <div class="ci-icon">${item.icon}</div>
+      <div class="ci-info">
+        <div class="ci-name">${item.name}</div>
+        <div class="ci-price">&#8377;${item.price} × ${item.qty} = &#8377;${item.price * item.qty}</div>
+      </div>
+      <div class="ci-qty">
+        <button class="ci-qty-btn" onclick="changeCartQty(${item.id},-1)">&#8722;</button>
+        <span class="ci-qty-val">${item.qty}</span>
+        <button class="ci-qty-btn" onclick="changeCartQty(${item.id},1)">&#43;</button>
+      </div>
+      <button class="ci-remove" onclick="removeFromCart(${item.id})">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function toggleCart() {
+  document.getElementById('cartDrawer').classList.toggle('open');
+}
+
+function checkout() {
+  if(cart.length === 0) return;
+
+  const total = cart.reduce((s,c) => s + c.price * c.qty, 0);
+  const amountInPaise = total * 100; // Razorpay needs paise
+
+  // Step 1 - Create order on server
+  fetch("/create_order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: amountInPaise })
+  })
+  .then(res => res.json())
+  .then(order => {
+
+    // Step 2 - Open Razorpay payment popup
+    const options = {
+      key:         order.key,
+      amount:      order.amount,
+      currency:    order.currency,
+      order_id:    order.order_id,
+      name:        "Arogya Medicine Delivery",
+      description: "Medicine Order Payment",
+      image:       "/static/arogya.jpeg",
+      prefill: {
+        name:    "Patient Name",
+        email:   "patient@email.com",
+        contact: "9999999999"
+      },
+      theme: {
+        color: "#0d6e7a"
+      },
+      handler: function(response) {
+
+        // Step 3 - Verify payment on server
+        fetch("/verify_payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature:  response.razorpay_signature
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if(data.status === "success") {
+            // Clear cart
+            cart = [];
+            updateCart();
+            toggleCart();
+            filterMeds();
+            // Go to success page
+            window.location.href = `/payment_success?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&amount=${order.amount}`;
+          }
+        });
+      }
+    };
+
+    // Open Razorpay popup
+    const rzp = new Razorpay(options);
+    rzp.open();
+  });
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── INIT ──
+renderMedicines(MEDICINES);
+</script>
+</body>
+</html>

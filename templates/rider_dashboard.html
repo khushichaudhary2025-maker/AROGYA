@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arogya - Rider Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-dark:#0d6e7a; --teal:#1a9bab; --teal-light:#2ec4b6;
+    --green:#38b44a; --cream:#f4faf8; --dark:#0a2a2f;
+    --mid:#1c4a52; --text:#1a3a3f; --muted:#6b9aa0;
+    --border:rgba(26,155,171,0.15);
+    --orange:#f39c12; --red:#e74c3c;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text); }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 40px; background:white; border-bottom:1px solid var(--border);
+  }
+  .nav-logo { display:flex; align-items:center; gap:8px; text-decoration:none; }
+  .nav-logo img { height:44px; object-fit:contain; }
+  .nav-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--teal-dark); letter-spacing:1px; }
+  .nav-right { display:flex; align-items:center; gap:14px; }
+  .nav-user { font-size:13px; color:var(--muted); }
+  .nav-user strong { color:var(--teal-dark); }
+  .btn-logout { background:transparent; border:1.5px solid var(--border); color:var(--teal-dark); padding:7px 18px; border-radius:50px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; transition:all .2s; }
+  .btn-logout:hover { background:var(--teal); color:white; border-color:var(--teal); }
+
+  /* ONLINE TOGGLE */
+  .online-wrap { display:flex; align-items:center; gap:8px; }
+  .online-label { font-size:13px; font-weight:600; color:var(--muted); }
+  .toggle-switch { position:relative; width:52px; height:28px; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .slider {
+    position:absolute; cursor:pointer; inset:0;
+    background:#ccc; border-radius:28px; transition:.3s;
+  }
+  .slider::before {
+    content:""; position:absolute;
+    width:22px; height:22px; left:3px; bottom:3px;
+    background:white; border-radius:50%; transition:.3s;
+  }
+  input:checked + .slider { background:var(--green); }
+  input:checked + .slider::before { transform:translateX(24px); }
+  .online-status { font-size:12px; font-weight:700; padding:3px 10px; border-radius:50px; }
+  .status-on  { background:#e8f8ee; color:#1a7a3a; }
+  .status-off { background:#fef0f0; color:#c0392b; }
+
+  /* PAGE */
+  .page { padding:28px 40px; max-width:1100px; margin:0 auto; }
+
+  /* FLASH */
+  .flash { padding:12px 18px; border-radius:12px; font-size:13px; font-weight:500; margin-bottom:20px; }
+  .flash-success { background:#e8f8ee; border:1px solid #a8ddb8; color:#1a7a3a; }
+  .flash-error   { background:#fef0f0; border:1px solid #f5c6c6; color:#c0392b; }
+
+  /* HEADER */
+  .page-header { margin-bottom:24px; }
+  .page-header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:26px; color:var(--dark); letter-spacing:-1px; }
+  .page-header p { color:var(--muted); font-size:14px; margin-top:4px; }
+
+  /* STATS */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+  .stat-card { background:white; border-radius:18px; padding:20px 22px; border:1px solid var(--border); }
+  .stat-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+  .stat-value { font-family:'Syne',sans-serif; font-weight:800; font-size:26px; background:linear-gradient(135deg,var(--teal-dark),var(--teal)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .stat-sub { font-size:11px; color:var(--muted); margin-top:4px; }
+
+  /* GRID */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+
+  /* CARDS */
+  .card { background:white; border-radius:20px; padding:24px; border:1px solid var(--border); }
+  .card-title { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--dark); margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+  .card-count { background:var(--teal); color:white; font-size:11px; font-weight:700; padding:2px 10px; border-radius:50px; }
+
+  /* ORDER CARDS */
+  .order-card { border:1.5px solid var(--border); border-radius:16px; padding:18px; margin-bottom:12px; transition:all .2s; }
+  .order-card:hover { box-shadow:0 4px 20px rgba(13,110,122,0.1); }
+  .order-card.pending   { border-color:#38b44a; background:#f0fdf4; }
+  .order-card.accepted  { border-color:var(--teal); background:#f0fbff; }
+  .order-card.picked_up { border-color:var(--orange); background:#fffbf0; }
+  .order-card.delivered { border-color:#ccc; background:#f9f9f9; opacity:.8; }
+
+  .order-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; gap:8px; }
+  .order-id   { font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--dark); }
+  .order-time { font-size:11px; color:var(--muted); margin-top:2px; }
+
+  .status-pill { padding:4px 12px; border-radius:50px; font-size:11px; font-weight:700; flex-shrink:0; }
+  .pill-pending   { background:#38b44a; color:white; }
+  .pill-accepted  { background:var(--teal); color:white; }
+  .pill-picked    { background:var(--orange); color:white; }
+  .pill-delivered { background:#888; color:white; }
+
+  .order-rows { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+  .order-row  { font-size:13px; color:var(--text); display:flex; align-items:flex-start; gap:8px; line-height:1.5; }
+  .order-row-icon { flex-shrink:0; width:18px; }
+
+  .order-actions { display:flex; gap:8px; }
+  .btn-action {
+    flex:1; border:none; padding:10px; border-radius:10px;
+    font-size:13px; font-weight:700; cursor:pointer; transition:all .2s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .btn-accept   { background:linear-gradient(135deg,var(--teal-dark),var(--teal)); color:white; }
+  .btn-pickup   { background:linear-gradient(135deg,#c47a1a,var(--orange)); color:white; }
+  .btn-deliver  { background:linear-gradient(135deg,#1a7a3a,var(--green)); color:white; }
+  .btn-done     { background:#e8f8ee; color:#1a7a3a; cursor:default; }
+  .btn-action:hover:not(.btn-done) { transform:translateY(-1px); box-shadow:0 4px 16px rgba(0,0,0,0.15); }
+  .btn-map { background:white; color:var(--teal-dark); border:1.5px solid var(--teal); padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
+  .btn-map:hover { background:var(--teal); color:white; }
+
+  /* EMPTY STATE */
+  .empty { text-align:center; padding:32px 20px; color:var(--muted); }
+  .empty div { font-size:36px; margin-bottom:8px; }
+  .empty p { font-size:13px; }
+
+  /* EARNINGS TABLE */
+  table { width:100%; border-collapse:collapse; }
+  th { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+  td { padding:12px; font-size:13px; color:var(--text); border-bottom:1px solid #f0f8f7; }
+  tr:last-child td { border-bottom:none; }
+  .earn-green { color:var(--green); font-weight:700; }
+  .earn-red   { color:var(--red);   font-weight:700; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--dark); color:white; padding:12px 24px; border-radius:50px; font-size:13px; font-weight:600; z-index:9999; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media(max-width:900px) {
+    .stats-row { grid-template-columns:1fr 1fr; }
+    .grid-2    { grid-template-columns:1fr; }
+    .page { padding:20px; }
+    nav   { padding:12px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="/static/arogya.jpeg" alt="Arogya">
+    <span>AROGYA</span>
+  </a>
+  <div class="nav-right">
+
+    <!-- ONLINE / OFFLINE TOGGLE -->
+    <div class="online-wrap">
+      <span class="online-label">Status:</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="onlineToggle"
+          {% if is_online %}checked{% endif %}
+          onchange="toggleOnline()">
+        <span class="slider"></span>
+      </label>
+      <span class="online-status {% if is_online %}status-on{% else %}status-off{% endif %}" id="onlineStatus">
+        {% if is_online %}&#9679; Online{% else %}&#9679; Offline{% endif %}
+      </span>
+    </div>
+
+    <span class="nav-user">&#127934; <strong>{{ rider.get('name', 'Rider') }}</strong>
+      {% if session.get('user_github_id') %}
+        | GitHub: <a href="https://github.com/{{ session.get('user_github_id') }}" target="_blank" style="color:var(--teal); text-decoration:none;">{{ session.get('user_github_id') }}</a>
+      {% endif %}
+    </span>
+    <a href="/logout" class="btn-logout">Logout</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">
+          {% if cat == 'success' %}&#10003;{% else %}&#9888;{% endif %} {{ msg }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <h1>&#127934; Rider Dashboard</h1>
+    <p>{{ rider.get('vehicle_type','') }} &nbsp;&#183;&nbsp; {{ rider.get('vehicle_number','') }} &nbsp;&#183;&nbsp; {{ rider.get('rider_city','') }}</p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Available Orders</div>
+      <div class="stat-value">{{ available|length }}</div>
+      <div class="stat-sub">waiting to be picked</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">My Active Orders</div>
+      <div class="stat-value">{{ in_progress|length }}</div>
+      <div class="stat-sub">in progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Earnings</div>
+      <div class="stat-value">&#8377;{{ rider.get('earnings', 0) }}</div>
+      <div class="stat-sub">&#8377;60 per delivery</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Deliveries</div>
+      <div class="stat-value">{{ rider.get('deliveries', 0) }}</div>
+      <div class="stat-sub">&#11088; {{ rider.get('rating', 5.0) }} rating</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- LEFT: AVAILABLE ORDERS -->
+    <div class="card">
+      <div class="card-title">
+        &#128230; Available Orders
+        <span class="card-count">{{ available|length }}</span>
+      </div>
+
+      {% if not is_online %}
+      <div class="empty">
+        <div>&#128274;</div>
+        <p>You are offline.<br>Turn on the toggle to receive orders!</p>
+      </div>
+      {% elif available %}
+        {% for order in available %}
+        <div class="order-card pending">
+          <div class="order-top">
+            <div>
+              <div class="order-id">Order #{{ order.id }}</div>
+              <div class="order-time">&#128336; {{ order.created_at }}</div>
+            </div>
+            <span class="status-pill pill-pending">New</span>
+          </div>
+          <div class="order-rows">
+            <div class="order-row"><span class="order-row-icon">&#128100;</span> {{ order.customer_name }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128205;</span> {{ order.address }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128138;</span> {{ order.medicines }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128222;</span> {{ order.customer_phone }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128176;</span> &#8377;{{ order.amount }} &nbsp;&#183;&nbsp; {{ order.payment }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128663;</span> {{ order.distance }} away &nbsp;&#183;&nbsp; &#127978; {{ order.pharmacy }}</div>
+          </div>
+          <div class="order-actions">
+            <form action="/rider/accept/{{ order.id }}" method="post" style="flex:1">
+              <button type="submit" class="btn-action btn-accept" style="width:100%">&#10003; Accept Order</button>
+            </form>
+            <a href="/map" class="btn-map">&#128204;</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">
+        <div>&#127881;</div>
+        <p>No new orders right now.<br>Stay online to receive orders!</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- RIGHT: MY ACTIVE ORDERS -->
+    <div class="card">
+      <div class="card-title">
+        &#128204; My Active Orders
+        <span class="card-count">{{ in_progress|length }}</span>
+      </div>
+
+      {% if in_progress %}
+        {% for order in in_progress %}
+        <div class="order-card {{ order.status }}">
+          <div class="order-top">
+            <div>
+              <div class="order-id">Order #{{ order.id }}</div>
+              <div class="order-time">
+                {% if order.status == 'accepted' %}Accepted at {{ order.get('accepted_at','') }}
+                {% elif order.status == 'picked_up' %}Picked up at {{ order.get('pickup_at','') }}
+                {% endif %}
+              </div>
+            </div>
+            <span class="status-pill {% if order.status == 'accepted' %}pill-accepted{% else %}pill-picked{% endif %}">
+              {% if order.status == 'accepted' %}Accepted{% else %}Picked Up{% endif %}
+            </span>
+          </div>
+          <div class="order-rows">
+            <div class="order-row"><span class="order-row-icon">&#128100;</span> {{ order.customer_name }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128205;</span> {{ order.address }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128138;</span> {{ order.medicines }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128222;</span> {{ order.customer_phone }}</div>
+            <div class="order-row"><span class="order-row-icon">&#128176;</span> &#8377;{{ order.amount }} &nbsp;&#183;&nbsp; {{ order.payment }}</div>
+          </div>
+          <div class="order-actions">
+            {% if order.status == 'accepted' %}
+              <form action="/rider/pickup/{{ order.id }}" method="post" style="flex:1">
+                <button type="submit" class="btn-action btn-pickup" style="width:100%">&#128230; Mark Picked Up</button>
+              </form>
+            {% elif order.status == 'picked_up' %}
+              <form action="/rider/deliver/{{ order.id }}" method="post" style="flex:1">
+                <button type="submit" class="btn-action btn-deliver" style="width:100%">&#10003; Mark Delivered</button>
+              </form>
+            {% endif %}
+            <a href="/map" class="btn-map">&#128204;</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">
+        <div>&#128203;</div>
+        <p>No active orders.<br>Accept an order from the left!</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- BOTTOM FULL WIDTH: DELIVERY HISTORY -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="card-title">
+        &#128176; Delivery History
+        <span class="card-count">{{ delivered|length }}</span>
+      </div>
+
+      {% if delivered %}
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Medicines</th>
+            <th>Amount</th>
+            <th>Delivered At</th>
+            <th>Earned</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in delivered %}
+          <tr>
+            <td><strong>#{{ order.id }}</strong></td>
+            <td>{{ order.customer_name }}</td>
+            <td>{{ order.medicines[:40] }}{% if order.medicines|length > 40 %}...{% endif %}</td>
+            <td>&#8377;{{ order.amount }}</td>
+            <td>{{ order.get('delivered_at', 'N/A') }}</td>
+            <td class="earn-green">&#8377;60</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">
+        <div>&#128203;</div>
+        <p>No deliveries yet.<br>Complete your first delivery to see history!</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  function toggleOnline() {
+    fetch('/rider/toggle_online', { method:'POST' })
+      .then(r => r.json())
+      .then(data => {
+        const statusEl = document.getElementById('onlineStatus');
+        if(data.is_online) {
+          statusEl.textContent = '● Online';
+          statusEl.className   = 'online-status status-on';
+          showToast('You are now Online — receiving orders!');
+        } else {
+          statusEl.textContent = '● Offline';
+          statusEl.className   = 'online-status status-off';
+          showToast('You are now Offline');
+        }
+        // Refresh page after 1 second to update order list
+        setTimeout(() => location.reload(), 1200);
+      });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // Auto refresh every 30 seconds to get new orders
+  setTimeout(() => location.reload(), 30000);
+</script>
+</body>
+</html>

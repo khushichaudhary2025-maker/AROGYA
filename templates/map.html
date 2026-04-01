@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arogya - Find Nearby Pharmacies</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --teal-dark:#0d6e7a; --teal:#1a9bab; --teal-light:#2ec4b6;
+    --green:#38b44a; --cream:#f4faf8; --dark:#0a2a2f;
+    --mid:#1c4a52; --text:#1a3a3f; --muted:#6b9aa0;
+    --border:rgba(26,155,171,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text); height:100vh; display:flex; flex-direction:column; }
+
+  nav { display:flex; align-items:center; justify-content:space-between; padding:10px 40px; background:rgba(244,250,248,0.97); border-bottom:1px solid var(--border); z-index:1000; flex-shrink:0; }
+  .nav-logo { display:flex; align-items:center; gap:8px; text-decoration:none; }
+  .nav-logo img { height:48px; width:auto; object-fit:contain; }
+  .nav-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--teal-dark); letter-spacing:1px; }
+  .nav-back { background:linear-gradient(135deg,var(--teal-dark),var(--teal)); color:white; border:none; padding:8px 20px; border-radius:50px; font-family:'DM Sans',sans-serif; font-weight:600; font-size:13px; cursor:pointer; text-decoration:none; }
+
+  .search-bar { background:white; padding:14px 40px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; flex-shrink:0; box-shadow:0 2px 12px rgba(13,110,122,0.06); position:relative; }
+  .search-input-wrap { flex:1; display:flex; align-items:center; background:var(--cream); border:1.5px solid var(--border); border-radius:50px; padding:10px 20px; gap:10px; transition:border-color .2s; position:relative; }
+  .search-input-wrap:focus-within { border-color:var(--teal); }
+  .search-input-wrap input { border:none; background:transparent; outline:none; font-family:'DM Sans',sans-serif; font-size:15px; color:var(--text); width:100%; }
+  .search-input-wrap input::placeholder { color:var(--muted); }
+
+  /* AUTOCOMPLETE DROPDOWN */
+  .suggestions {
+    position:absolute; top:100%; left:0; right:0;
+    background:white; border:1px solid var(--border);
+    border-radius:16px; margin-top:8px; z-index:500;
+    box-shadow:0 8px 32px rgba(13,110,122,0.15);
+    max-height:280px; overflow-y:auto; display:none;
+  }
+  .suggestions.show { display:block; }
+  .suggestion-item {
+    padding:12px 20px; cursor:pointer; transition:background .15s;
+    display:flex; align-items:center; gap:10px; font-size:14px;
+    border-bottom:1px solid #f0f8f7;
+  }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:rgba(26,155,171,0.06); }
+  .suggestion-icon { color:var(--teal); font-size:14px; flex-shrink:0; }
+  .suggestion-name { font-weight:600; color:var(--dark); }
+  .suggestion-state { font-size:12px; color:var(--muted); margin-top:1px; }
+
+  .btn-search { background:linear-gradient(135deg,var(--teal-dark),var(--teal)); color:white; border:none; padding:12px 28px; border-radius:50px; font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px; cursor:pointer; white-space:nowrap; transition:all .2s; box-shadow:0 4px 16px rgba(13,110,122,0.3); }
+  .btn-search:hover { transform:translateY(-1px); }
+  .btn-locate { background:white; color:var(--teal-dark); border:1.5px solid var(--teal); padding:12px 20px; border-radius:50px; font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px; cursor:pointer; white-space:nowrap; transition:all .2s; display:flex; align-items:center; gap:6px; }
+  .btn-locate:hover { background:var(--teal); color:white; }
+
+  .main { flex:1; display:flex; overflow:hidden; }
+
+  .sidebar { width:370px; flex-shrink:0; background:white; border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .sidebar-header { padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .sidebar-header h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--dark); }
+  .sidebar-location { font-size:12px; color:var(--muted); margin-top:2px; }
+  .count-badge { background:linear-gradient(135deg,var(--teal),var(--green)); color:white; padding:3px 12px; border-radius:50px; font-size:12px; font-weight:600; white-space:nowrap; }
+
+  .pharmacy-list { flex:1; overflow-y:auto; padding:12px; }
+  .pharmacy-list::-webkit-scrollbar { width:4px; }
+  .pharmacy-list::-webkit-scrollbar-thumb { background:var(--teal-light); border-radius:4px; }
+
+  .pharmacy-card { background:var(--cream); border-radius:16px; padding:16px; margin-bottom:10px; cursor:pointer; transition:all .2s; border:1.5px solid transparent; }
+  .pharmacy-card:hover, .pharmacy-card.active { border-color:var(--teal); background:white; box-shadow:0 4px 20px rgba(13,110,122,0.1); transform:translateX(3px); }
+  .pharmacy-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .pharmacy-name { font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--dark); }
+  .open-badge   { background:#e8f8ee; color:#1a7a3a; font-size:10px; font-weight:700; padding:3px 9px; border-radius:50px; white-space:nowrap; flex-shrink:0; }
+  .closed-badge { background:#fef0f0; color:#c0392b; font-size:10px; font-weight:700; padding:3px 9px; border-radius:50px; white-space:nowrap; flex-shrink:0; }
+  .pharmacy-addr { font-size:12px; color:var(--muted); margin:5px 0 8px; line-height:1.5; }
+  .pharmacy-meta { display:flex; gap:10px; flex-wrap:wrap; }
+  .meta-item { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:3px; }
+  .meta-item span { font-weight:600; color:var(--teal-dark); }
+  .ph-actions { display:flex; gap:8px; margin-top:12px; }
+  .btn-dir  { flex:1; background:linear-gradient(135deg,var(--teal-dark),var(--teal)); color:white; border:none; padding:8px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; }
+  .btn-call { background:white; color:var(--teal-dark); border:1.5px solid var(--teal); padding:8px 12px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; }
+
+  #map { flex:1; }
+
+  .loading { position:absolute; inset:0; background:rgba(244,250,248,0.93); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2000; gap:14px; }
+  .loading.hidden { display:none; }
+  .spinner { width:48px; height:48px; border:4px solid var(--border); border-top-color:var(--teal); border-radius:50%; animation:spin .8s linear infinite; }
+  .loading p { color:var(--teal-dark); font-weight:600; font-size:15px; }
+
+  .no-result { text-align:center; padding:40px 20px; color:var(--muted); }
+  .no-result div { font-size:40px; margin-bottom:12px; }
+  .no-result p { font-size:14px; line-height:1.6; }
+
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  @media(max-width:768px) {
+    .main { flex-direction:column; }
+    .sidebar { width:100%; height:300px; border-right:none; border-top:1px solid var(--border); order:2; }
+    #map { flex:1; order:1; min-height:300px; }
+    nav { padding:10px 20px; }
+    .search-bar { padding:12px 20px; flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="/static/arogya.jpeg" alt="Arogya">
+    <span>AROGYA</span>
+  </a>
+  <a href="/" class="nav-back">&#8592; Back to Home</a>
+</nav>
+
+<div class="search-bar">
+  <div class="search-input-wrap" style="position:relative">
+    <span style="color:var(--muted);font-size:16px">&#128269;</span>
+    <input type="text" id="searchInput"
+      placeholder="Type any city, district or state... e.g. Bihar, Agra, Lucknow"
+      oninput="onSearchInput()"
+      onkeydown="onKeyDown(event)"
+      autocomplete="off"/>
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+  <button class="btn-locate" onclick="locateMe()">&#127358; My Location</button>
+  <button class="btn-search" onclick="handleSearch()">Search</button>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div>
+        <h3>Nearby Pharmacies</h3>
+        <div class="sidebar-location" id="sidebarLocation">Search any location in India</div>
+      </div>
+      <span class="count-badge" id="countBadge">0 found</span>
+    </div>
+    <div class="pharmacy-list" id="pharmacyList">
+      <div class="no-result">
+        <div>&#127758;</div>
+        <p>Search any city, district<br>or state across India</p>
+      </div>
+    </div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<div class="loading hidden" id="loading">
+  <div class="spinner"></div>
+  <p id="loadingText">Searching...</p>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// COMPLETE INDIA LOCATION DATABASE
+// Every state + major cities + districts with coordinates
+// ═══════════════════════════════════════════════════
+const INDIA_LOCATIONS = [
+  // ── UTTAR PRADESH ──
+  { name:"Agra",          state:"Uttar Pradesh", lat:27.1985, lng:78.0088 },
+  { name:"Lucknow",       state:"Uttar Pradesh", lat:26.8467, lng:80.9462 },
+  { name:"Kanpur",        state:"Uttar Pradesh", lat:26.4499, lng:80.3319 },
+  { name:"Varanasi",      state:"Uttar Pradesh", lat:25.3176, lng:82.9739 },
+  { name:"Prayagraj",     state:"Uttar Pradesh", lat:25.4358, lng:81.8463 },
+  { name:"Meerut",        state:"Uttar Pradesh", lat:28.9845, lng:77.7064 },
+  { name:"Mathura",       state:"Uttar Pradesh", lat:27.4924, lng:77.6737 },
+  { name:"Bareilly",      state:"Uttar Pradesh", lat:28.3670, lng:79.4304 },
+  { name:"Aligarh",       state:"Uttar Pradesh", lat:27.8974, lng:78.0880 },
+  { name:"Gorakhpur",     state:"Uttar Pradesh", lat:26.7606, lng:83.3732 },
+  { name:"Noida",         state:"Uttar Pradesh", lat:28.5355, lng:77.3910 },
+  { name:"Ghaziabad",     state:"Uttar Pradesh", lat:28.6692, lng:77.4538 },
+  { name:"Firozabad",     state:"Uttar Pradesh", lat:27.1523, lng:78.3955 },
+  { name:"Moradabad",     state:"Uttar Pradesh", lat:28.8386, lng:78.7733 },
+  { name:"Saharanpur",    state:"Uttar Pradesh", lat:29.9680, lng:77.5510 },
+  { name:"Muzaffarnagar", state:"Uttar Pradesh", lat:29.4727, lng:77.7085 },
+  { name:"Jhansi",        state:"Uttar Pradesh", lat:25.4484, lng:78.5685 },
+  { name:"Ayodhya",       state:"Uttar Pradesh", lat:26.7922, lng:82.1998 },
+  { name:"Fatehpur",      state:"Uttar Pradesh", lat:25.9287, lng:80.8119 },
+  { name:"Unnao",         state:"Uttar Pradesh", lat:26.5474, lng:80.4896 },
+  { name:"Etawah",        state:"Uttar Pradesh", lat:26.7785, lng:79.0238 },
+  { name:"Shahjahanpur",  state:"Uttar Pradesh", lat:27.8836, lng:79.9113 },
+  { name:"Rampur",        state:"Uttar Pradesh", lat:28.8092, lng:79.0236 },
+  { name:"Bulandshahr",   state:"Uttar Pradesh", lat:28.4072, lng:77.8471 },
+  { name:"Lakhimpur",     state:"Uttar Pradesh", lat:27.9487, lng:80.7811 },
+  { name:"Sitapur",       state:"Uttar Pradesh", lat:27.5629, lng:80.6826 },
+  { name:"Hardoi",        state:"Uttar Pradesh", lat:27.3966, lng:80.1318 },
+  { name:"Uttar Pradesh", state:"Uttar Pradesh", lat:26.8467, lng:80.9462 },
+
+  // ── BIHAR ──
+  { name:"Patna",         state:"Bihar", lat:25.5941, lng:85.1376 },
+  { name:"Gaya",          state:"Bihar", lat:24.7914, lng:85.0002 },
+  { name:"Bhagalpur",     state:"Bihar", lat:25.2425, lng:86.9842 },
+  { name:"Muzaffarpur",   state:"Bihar", lat:26.1197, lng:85.3910 },
+  { name:"Darbhanga",     state:"Bihar", lat:26.1542, lng:85.8918 },
+  { name:"Purnia",        state:"Bihar", lat:25.7771, lng:87.4753 },
+  { name:"Ara",           state:"Bihar", lat:25.5564, lng:84.6625 },
+  { name:"Begusarai",     state:"Bihar", lat:25.4182, lng:86.1272 },
+  { name:"Katihar",       state:"Bihar", lat:25.5392, lng:87.5763 },
+  { name:"Munger",        state:"Bihar", lat:25.3726, lng:86.4730 },
+  { name:"Chapra",        state:"Bihar", lat:25.7804, lng:84.7480 },
+  { name:"Sitamarhi",     state:"Bihar", lat:26.5942, lng:85.4889 },
+  { name:"Hajipur",       state:"Bihar", lat:25.6892, lng:85.2082 },
+  { name:"Saharsa",       state:"Bihar", lat:25.8838, lng:86.5986 },
+  { name:"Motihari",      state:"Bihar", lat:26.6494, lng:84.9181 },
+  { name:"Samastipur",    state:"Bihar", lat:25.8632, lng:85.7809 },
+  { name:"Nalanda",       state:"Bihar", lat:25.1344, lng:85.4444 },
+  { name:"Supaul",        state:"Bihar", lat:26.1234, lng:86.6027 },
+  { name:"Madhubani",     state:"Bihar", lat:26.3535, lng:86.0716 },
+  { name:"Nawada",        state:"Bihar", lat:24.8874, lng:85.5417 },
+  { name:"Bihar Sharif",  state:"Bihar", lat:25.1960, lng:85.5237 },
+  { name:"Jehanabad",     state:"Bihar", lat:25.2138, lng:84.9918 },
+  { name:"Rohtas",        state:"Bihar", lat:24.9514, lng:83.9936 },
+  { name:"Buxar",         state:"Bihar", lat:25.5635, lng:83.9783 },
+  { name:"Bihar",         state:"Bihar", lat:25.5941, lng:85.1376 },
+  {name:"siwan",          state:"bihar", lat:26.22,   lng:84.36},
+
+  // ── DELHI ──
+  { name:"New Delhi",         state:"Delhi", lat:28.6139, lng:77.2090 },
+  { name:"Delhi",             state:"Delhi", lat:28.7041, lng:77.1025 },
+  { name:"Connaught Place",   state:"Delhi", lat:28.6315, lng:77.2167 },
+  { name:"Karol Bagh",        state:"Delhi", lat:28.6519, lng:77.1909 },
+  { name:"Lajpat Nagar",      state:"Delhi", lat:28.5672, lng:77.2434 },
+  { name:"Saket",             state:"Delhi", lat:28.5244, lng:77.2066 },
+  { name:"Dwarka",            state:"Delhi", lat:28.5921, lng:77.0460 },
+  { name:"Rohini",            state:"Delhi", lat:28.7495, lng:77.0669 },
+  { name:"Janakpuri",         state:"Delhi", lat:28.6289, lng:77.0832 },
+  { name:"Pitampura",         state:"Delhi", lat:28.7002, lng:77.1316 },
+
+  // ── MAHARASHTRA ──
+  { name:"Mumbai",        state:"Maharashtra", lat:19.0760, lng:72.8777 },
+  { name:"Pune",          state:"Maharashtra", lat:18.5204, lng:73.8567 },
+  { name:"Nagpur",        state:"Maharashtra", lat:21.1458, lng:79.0882 },
+  { name:"Nashik",        state:"Maharashtra", lat:19.9975, lng:73.7898 },
+  { name:"Aurangabad",    state:"Maharashtra", lat:19.8762, lng:75.3433 },
+  { name:"Solapur",       state:"Maharashtra", lat:17.6805, lng:75.9064 },
+  { name:"Kolhapur",      state:"Maharashtra", lat:16.7050, lng:74.2433 },
+  { name:"Thane",         state:"Maharashtra", lat:19.2183, lng:72.9781 },
+  { name:"Navi Mumbai",   state:"Maharashtra", lat:19.0330, lng:73.0297 },
+  { name:"Amravati",      state:"Maharashtra", lat:20.9374, lng:77.7796 },
+  { name:"Nanded",        state:"Maharashtra", lat:19.1383, lng:77.3210 },
+  { name:"Sangli",        state:"Maharashtra", lat:16.8524, lng:74.5815 },
+  { name:"Jalgaon",       state:"Maharashtra", lat:21.0077, lng:75.5626 },
+  { name:"Akola",         state:"Maharashtra", lat:20.7002, lng:77.0082 },
+  { name:"Latur",         state:"Maharashtra", lat:18.4088, lng:76.5604 },
+  { name:"Maharashtra",   state:"Maharashtra", lat:19.7515, lng:75.7139 },
+
+  // ── WEST BENGAL ──
+  { name:"Kolkata",        state:"West Bengal", lat:22.5726, lng:88.3639 },
+  { name:"Howrah",         state:"West Bengal", lat:22.5958, lng:88.2636 },
+  { name:"Durgapur",       state:"West Bengal", lat:23.5204, lng:87.3119 },
+  { name:"Asansol",        state:"West Bengal", lat:23.6889, lng:86.9661 },
+  { name:"Siliguri",       state:"West Bengal", lat:26.7271, lng:88.3953 },
+  { name:"Bardhaman",      state:"West Bengal", lat:23.2324, lng:87.8615 },
+  { name:"Malda",          state:"West Bengal", lat:25.0108, lng:88.1430 },
+  { name:"Murshidabad",    state:"West Bengal", lat:24.1783, lng:88.2697 },
+  { name:"Jalpaiguri",     state:"West Bengal", lat:26.5159, lng:88.7278 },
+  { name:"Darjeeling",     state:"West Bengal", lat:27.0360, lng:88.2627 },
+  { name:"West Bengal",    state:"West Bengal", lat:22.9868, lng:87.8550 },
+
+  // ── RAJASTHAN ──
+  { name:"Jaipur",         state:"Rajasthan", lat:26.9124, lng:75.7873 },
+  { name:"Jodhpur",        state:"Rajasthan", lat:26.2389, lng:73.0243 },
+  { name:"Udaipur",        state:"Rajasthan", lat:24.5854, lng:73.7125 },
+  { name:"Kota",           state:"Rajasthan", lat:25.2138, lng:75.8648 },
+  { name:"Bikaner",        state:"Rajasthan", lat:28.0229, lng:73.3119 },
+  { name:"Ajmer",          state:"Rajasthan", lat:26.4499, lng:74.6399 },
+  { name:"Bhilwara",       state:"Rajasthan", lat:25.3534, lng:74.6313 },
+  { name:"Alwar",          state:"Rajasthan", lat:27.5530, lng:76.6346 },
+  { name:"Bharatpur",      state:"Rajasthan", lat:27.2152, lng:77.4894 },
+  { name:"Sikar",          state:"Rajasthan", lat:27.6094, lng:75.1398 },
+  { name:"Pali",           state:"Rajasthan", lat:25.7711, lng:73.3234 },
+  { name:"Rajasthan",      state:"Rajasthan", lat:27.0238, lng:74.2179 },
+
+  // ── MADHYA PRADESH ──
+  { name:"Bhopal",         state:"Madhya Pradesh", lat:23.2599, lng:77.4126 },
+  { name:"Indore",         state:"Madhya Pradesh", lat:22.7196, lng:75.8577 },
+  { name:"Gwalior",        state:"Madhya Pradesh", lat:26.2183, lng:78.1828 },
+  { name:"Jabalpur",       state:"Madhya Pradesh", lat:23.1815, lng:79.9864 },
+  { name:"Ujjain",         state:"Madhya Pradesh", lat:23.1765, lng:75.7885 },
+  { name:"Rewa",           state:"Madhya Pradesh", lat:24.5362, lng:81.2999 },
+  { name:"Sagar",          state:"Madhya Pradesh", lat:23.8388, lng:78.7378 },
+  { name:"Satna",          state:"Madhya Pradesh", lat:24.5733, lng:80.8322 },
+  { name:"Dewas",          state:"Madhya Pradesh", lat:22.9623, lng:76.0520 },
+  { name:"Chhindwara",     state:"Madhya Pradesh", lat:22.0574, lng:78.9382 },
+  { name:"Madhya Pradesh", state:"Madhya Pradesh", lat:22.9734, lng:78.6569 },
+
+  // ── GUJARAT ──
+  { name:"Ahmedabad",      state:"Gujarat", lat:23.0225, lng:72.5714 },
+  { name:"Surat",          state:"Gujarat", lat:21.1702, lng:72.8311 },
+  { name:"Vadodara",       state:"Gujarat", lat:22.3072, lng:73.1812 },
+  { name:"Rajkot",         state:"Gujarat", lat:22.3039, lng:70.8022 },
+  { name:"Bhavnagar",      state:"Gujarat", lat:21.7645, lng:72.1519 },
+  { name:"Jamnagar",       state:"Gujarat", lat:22.4707, lng:70.0577 },
+  { name:"Junagadh",       state:"Gujarat", lat:21.5222, lng:70.4579 },
+  { name:"Gandhinagar",    state:"Gujarat", lat:23.2156, lng:72.6369 },
+  { name:"Anand",          state:"Gujarat", lat:22.5645, lng:72.9289 },
+  { name:"Morbi",          state:"Gujarat", lat:22.8173, lng:70.8377 },
+  { name:"Gujarat",        state:"Gujarat", lat:22.2587, lng:71.1924 },
+
+  // ── KARNATAKA ──
+  { name:"Bangalore",      state:"Karnataka", lat:12.9716, lng:77.5946 },
+  { name:"Mysore",         state:"Karnataka", lat:12.2958, lng:76.6394 },
+  { name:"Hubli",          state:"Karnataka", lat:15.3647, lng:75.1240 },
+  { name:"Mangalore",      state:"Karnataka", lat:12.9141, lng:74.8560 },
+  { name:"Belgaum",        state:"Karnataka", lat:15.8497, lng:74.4977 },
+  { name:"Gulbarga",       state:"Karnataka", lat:17.3297, lng:76.8343 },
+  { name:"Davangere",      state:"Karnataka", lat:14.4644, lng:75.9218 },
+  { name:"Bellary",        state:"Karnataka", lat:15.1394, lng:76.9214 },
+  { name:"Bijapur",        state:"Karnataka", lat:16.8302, lng:75.7100 },
+  { name:"Shimoga",        state:"Karnataka", lat:13.9299, lng:75.5681 },
+  { name:"Karnataka",      state:"Karnataka", lat:15.3173, lng:75.7139 },
+
+  // ── TAMIL NADU ──
+  { name:"Chennai",        state:"Tamil Nadu", lat:13.0827, lng:80.2707 },
+  { name:"Coimbatore",     state:"Tamil Nadu", lat:11.0168, lng:76.9558 },
+  { name:"Madurai",        state:"Tamil Nadu", lat:9.9252,  lng:78.1198 },
+  { name:"Tiruchirappalli",state:"Tamil Nadu", lat:10.7905, lng:78.7047 },
+  { name:"Salem",          state:"Tamil Nadu", lat:11.6643, lng:78.1460 },
+  { name:"Tirunelveli",    state:"Tamil Nadu", lat:8.7139,  lng:77.7567 },
+  { name:"Erode",          state:"Tamil Nadu", lat:11.3410, lng:77.7172 },
+  { name:"Vellore",        state:"Tamil Nadu", lat:12.9165, lng:79.1325 },
+  { name:"Thanjavur",      state:"Tamil Nadu", lat:10.7870, lng:79.1378 },
+  { name:"Tiruppur",       state:"Tamil Nadu", lat:11.1085, lng:77.3411 },
+  { name:"Tamil Nadu",     state:"Tamil Nadu", lat:11.1271, lng:78.6569 },
+
+  // ── ANDHRA PRADESH ──
+  { name:"Visakhapatnam",  state:"Andhra Pradesh", lat:17.6868, lng:83.2185 },
+  { name:"Vijayawada",     state:"Andhra Pradesh", lat:16.5062, lng:80.6480 },
+  { name:"Guntur",         state:"Andhra Pradesh", lat:16.3067, lng:80.4365 },
+  { name:"Nellore",        state:"Andhra Pradesh", lat:14.4426, lng:79.9865 },
+  { name:"Kurnool",        state:"Andhra Pradesh", lat:15.8281, lng:78.0373 },
+  { name:"Rajahmundry",    state:"Andhra Pradesh", lat:17.0005, lng:81.8040 },
+  { name:"Tirupati",       state:"Andhra Pradesh", lat:13.6288, lng:79.4192 },
+  { name:"Kakinada",       state:"Andhra Pradesh", lat:16.9891, lng:82.2475 },
+  { name:"Kadapa",         state:"Andhra Pradesh", lat:14.4674, lng:78.8241 },
+  { name:"Andhra Pradesh", state:"Andhra Pradesh", lat:15.9129, lng:79.7400 },
+
+  // ── TELANGANA ──
+  { name:"Hyderabad",      state:"Telangana", lat:17.3850, lng:78.4867 },
+  { name:"Warangal",       state:"Telangana", lat:17.9784, lng:79.5941 },
+  { name:"Nizamabad",      state:"Telangana", lat:18.6724, lng:78.0941 },
+  { name:"Karimnagar",     state:"Telangana", lat:18.4386, lng:79.1288 },
+  { name:"Khammam",        state:"Telangana", lat:17.2473, lng:80.1514 },
+  { name:"Ramagundam",     state:"Telangana", lat:18.7564, lng:79.4744 },
+  { name:"Secunderabad",   state:"Telangana", lat:17.4399, lng:78.4983 },
+  { name:"Telangana",      state:"Telangana", lat:17.1232, lng:79.2088 },
+
+  // ── KERALA ──
+  { name:"Thiruvananthapuram",state:"Kerala", lat:8.5241, lng:76.9366 },
+  { name:"Kochi",          state:"Kerala", lat:9.9312,  lng:76.2673 },
+  { name:"Kozhikode",      state:"Kerala", lat:11.2588, lng:75.7804 },
+  { name:"Thrissur",       state:"Kerala", lat:10.5276, lng:76.2144 },
+  { name:"Kollam",         state:"Kerala", lat:8.8932,  lng:76.6141 },
+  { name:"Palakkad",       state:"Kerala", lat:10.7867, lng:76.6548 },
+  { name:"Alappuzha",      state:"Kerala", lat:9.4981,  lng:76.3388 },
+  { name:"Malappuram",     state:"Kerala", lat:11.0732, lng:76.0740 },
+  { name:"Kannur",         state:"Kerala", lat:11.8745, lng:75.3704 },
+  { name:"Kerala",         state:"Kerala", lat:10.8505, lng:76.2711 },
+
+  // ── PUNJAB ──
+  { name:"Ludhiana",       state:"Punjab", lat:30.9010, lng:75.8573 },
+  { name:"Amritsar",       state:"Punjab", lat:31.6340, lng:74.8723 },
+  { name:"Jalandhar",      state:"Punjab", lat:31.3260, lng:75.5762 },
+  { name:"Patiala",        state:"Punjab", lat:30.3398, lng:76.3869 },
+  { name:"Bathinda",       state:"Punjab", lat:30.2110, lng:74.9455 },
+  { name:"Mohali",         state:"Punjab", lat:30.7046, lng:76.7179 },
+  { name:"Pathankot",      state:"Punjab", lat:32.2643, lng:75.6421 },
+  { name:"Hoshiarpur",     state:"Punjab", lat:31.5143, lng:75.9115 },
+  { name:"Punjab",         state:"Punjab", lat:31.1471, lng:75.3412 },
+
+  // ── HARYANA ──
+  { name:"Faridabad",      state:"Haryana", lat:28.4089, lng:77.3178 },
+  { name:"Gurugram",       state:"Haryana", lat:28.4595, lng:77.0266 },
+  { name:"Panipat",        state:"Haryana", lat:29.3909, lng:76.9635 },
+  { name:"Ambala",         state:"Haryana", lat:30.3782, lng:76.7767 },
+  { name:"Yamunanagar",    state:"Haryana", lat:30.1290, lng:77.2674 },
+  { name:"Rohtak",         state:"Haryana", lat:28.8955, lng:76.6066 },
+  { name:"Hisar",          state:"Haryana", lat:29.1492, lng:75.7217 },
+  { name:"Karnal",         state:"Haryana", lat:29.6857, lng:76.9905 },
+  { name:"Haryana",        state:"Haryana", lat:29.0588, lng:76.0856 },
+
+  // ── UTTARAKHAND ──
+  { name:"Dehradun",       state:"Uttarakhand", lat:30.3165, lng:78.0322 },
+  { name:"Haridwar",       state:"Uttarakhand", lat:29.9457, lng:78.1642 },
+  { name:"Roorkee",        state:"Uttarakhand", lat:29.8543, lng:77.8880 },
+  { name:"Haldwani",       state:"Uttarakhand", lat:29.2183, lng:79.5130 },
+  { name:"Nainital",       state:"Uttarakhand", lat:29.3803, lng:79.4636 },
+  { name:"Rishikesh",      state:"Uttarakhand", lat:30.0869, lng:78.2676 },
+  { name:"Mussoorie",      state:"Uttarakhand", lat:30.4545, lng:78.0649 },
+  { name:"Uttarakhand",    state:"Uttarakhand", lat:30.0668, lng:79.0193 },
+
+  // ── JHARKHAND ──
+  { name:"Ranchi",         state:"Jharkhand", lat:23.3441, lng:85.3096 },
+  { name:"Jamshedpur",     state:"Jharkhand", lat:22.8046, lng:86.2029 },
+  { name:"Dhanbad",        state:"Jharkhand", lat:23.7957, lng:86.4304 },
+  { name:"Bokaro",         state:"Jharkhand", lat:23.6693, lng:86.1511 },
+  { name:"Hazaribagh",     state:"Jharkhand", lat:23.9925, lng:85.3637 },
+  { name:"Jharkhand",      state:"Jharkhand", lat:23.6102, lng:85.2799 },
+
+  // ── ODISHA ──
+  { name:"Bhubaneswar",    state:"Odisha", lat:20.2961, lng:85.8245 },
+  { name:"Cuttack",        state:"Odisha", lat:20.4625, lng:85.8830 },
+  { name:"Rourkela",       state:"Odisha", lat:22.2604, lng:84.8536 },
+  { name:"Berhampur",      state:"Odisha", lat:19.3149, lng:84.7941 },
+  { name:"Sambalpur",      state:"Odisha", lat:21.4669, lng:83.9756 },
+  { name:"Odisha",         state:"Odisha", lat:20.9517, lng:85.0985 },
+
+  // ── CHHATTISGARH ──
+  { name:"Raipur",         state:"Chhattisgarh", lat:21.2514, lng:81.6296 },
+  { name:"Bhilai",         state:"Chhattisgarh", lat:21.2090, lng:81.3780 },
+  { name:"Bilaspur",       state:"Chhattisgarh", lat:22.0796, lng:82.1391 },
+  { name:"Korba",          state:"Chhattisgarh", lat:22.3595, lng:82.7501 },
+  { name:"Chhattisgarh",   state:"Chhattisgarh", lat:21.2787, lng:81.8661 },
+
+  // ── ASSAM ──
+  { name:"Guwahati",       state:"Assam", lat:26.1445, lng:91.7362 },
+  { name:"Silchar",        state:"Assam", lat:24.8333, lng:92.7789 },
+  { name:"Dibrugarh",      state:"Assam", lat:27.4728, lng:94.9120 },
+  { name:"Jorhat",         state:"Assam", lat:26.7509, lng:94.2037 },
+  { name:"Assam",          state:"Assam", lat:26.2006, lng:92.9376 },
+
+  // ── HIMACHAL PRADESH ──
+  { name:"Shimla",         state:"Himachal Pradesh", lat:31.1048, lng:77.1734 },
+  { name:"Manali",         state:"Himachal Pradesh", lat:32.2396, lng:77.1887 },
+  { name:"Dharamshala",    state:"Himachal Pradesh", lat:32.2190, lng:76.3234 },
+  { name:"Solan",          state:"Himachal Pradesh", lat:30.9045, lng:77.0967 },
+  { name:"Himachal Pradesh",state:"Himachal Pradesh",lat:31.1048, lng:77.1734 },
+
+  // ── JAMMU & KASHMIR ──
+  { name:"Srinagar",       state:"Jammu & Kashmir", lat:34.0837, lng:74.7973 },
+  { name:"Jammu",          state:"Jammu & Kashmir", lat:32.7266, lng:74.8570 },
+  { name:"Anantnag",       state:"Jammu & Kashmir", lat:33.7311, lng:75.1487 },
+  { name:"Baramulla",      state:"Jammu & Kashmir", lat:34.2099, lng:74.3436 },
+  { name:"Jammu & Kashmir",state:"Jammu & Kashmir", lat:33.7782, lng:76.5762 },
+
+  // ── GOA ──
+  { name:"Panaji",         state:"Goa", lat:15.4909, lng:73.8278 },
+  { name:"Margao",         state:"Goa", lat:15.2832, lng:73.9862 },
+  { name:"Vasco da Gama",  state:"Goa", lat:15.3982, lng:73.8113 },
+  { name:"Goa",            state:"Goa", lat:15.2993, lng:74.1240 },
+
+  // ── TRIPURA ──
+  { name:"Agartala",       state:"Tripura", lat:23.8315, lng:91.2868 },
+  { name:"Tripura",        state:"Tripura", lat:23.9408, lng:91.9882 },
+
+  // ── MANIPUR ──
+  { name:"Imphal",         state:"Manipur", lat:24.8170, lng:93.9368 },
+  { name:"Manipur",        state:"Manipur", lat:24.6637, lng:93.9063 },
+
+  // ── MEGHALAYA ──
+  { name:"Shillong",       state:"Meghalaya", lat:25.5788, lng:91.8933 },
+  { name:"Meghalaya",      state:"Meghalaya", lat:25.4670, lng:91.3662 },
+
+  // ── NAGALAND ──
+  { name:"Kohima",         state:"Nagaland", lat:25.6701, lng:94.1077 },
+  { name:"Nagaland",       state:"Nagaland", lat:26.1584, lng:94.5624 },
+
+  // ── SIKKIM ──
+  { name:"Gangtok",        state:"Sikkim", lat:27.3314, lng:88.6138 },
+  { name:"Sikkim",         state:"Sikkim", lat:27.5330, lng:88.5122 },
+
+  // ── MIZORAM ──
+  { name:"Aizawl",         state:"Mizoram", lat:23.7307, lng:92.7173 },
+  { name:"Mizoram",        state:"Mizoram", lat:23.1645, lng:92.9376 },
+
+  // ── ARUNACHAL PRADESH ──
+  { name:"Itanagar",       state:"Arunachal Pradesh", lat:27.0844, lng:93.6053 },
+  { name:"Arunachal Pradesh",state:"Arunachal Pradesh",lat:28.2180, lng:94.7278 },
+
+  // ── CHANDIGARH ──
+  { name:"Chandigarh",     state:"Chandigarh", lat:30.7333, lng:76.7794 },
+
+  // ── PUDUCHERRY ──
+  { name:"Puducherry",     state:"Puducherry", lat:11.9416, lng:79.8083 },
+  { name:"Pondicherry",    state:"Puducherry", lat:11.9416, lng:79.8083 },
+
+  // ── ANDAMAN & NICOBAR ──
+  { name:"Port Blair",     state:"Andaman & Nicobar", lat:11.6234, lng:92.7265 },
+];
+
+// ── PHARMACY NAME POOL ──
+const PHARMACY_NAMES = [
+  "Apollo Pharmacy", "MedPlus Pharmacy", "Jan Aushadhi Kendra",
+  "Life Care Medical", "City Medical Store", "Wellness Pharmacy",
+  "Sanjivani Medicals", "Dhanwantari Pharmacy", "Healthway Medical",
+  "Care & Cure Pharmacy", "Shree Medical Store", "Om Pharmacy",
+  "Balaji Medical Hall", "New India Pharmacy", "Sunrise Medical",
+  "Aarogya Medical", "Swasthya Pharmacy", "Jeevan Pharmacy",
+  "Medicare Store", "Health Plus Pharmacy"
+];
+
+const STREET_NAMES = [
+  "Main Road", "Station Road", "Civil Lines", "Gandhi Nagar",
+  "MG Road", "Nehru Nagar", "Subhash Chowk", "Market Road",
+  "Bus Stand Road", "Hospital Road", "Lal Bagh", "Sadar Bazaar",
+  "Raja Road", "Collector Ganj", "Bypass Road", "Mall Road"
+];
+
+const HOURS_LIST = ["24 Hours","8AM-10PM","9AM-9PM","7AM-11PM","8AM-9PM","9AM-11PM"];
+
+// ── GENERATE PHARMACIES AROUND COORDINATES ──
+function generatePharmacies(lat, lng, cityName) {
+  const city = cityName.split(',')[0].trim();
+  const shuffled = [...PHARMACY_NAMES].sort(() => Math.random() - 0.5).slice(0, 9);
+  return shuffled.map((name, i) => ({
+    name,
+    address:  STREET_NAMES[i % STREET_NAMES.length] + ", " + city,
+    lat:      lat + (Math.random() - 0.5) * 0.025,
+    lng:      lng + (Math.random() - 0.5) * 0.025,
+    phone:    "98" + Math.floor(10000000 + Math.random() * 89999999),
+    hours:    HOURS_LIST[i % HOURS_LIST.length],
+    rating:   (3.8 + Math.random() * 1.1).toFixed(1),
+    open:     Math.random() > 0.2,
+    dist:     (0.2 + Math.random() * 2.8).toFixed(1) + " km"
+  })).sort((a, b) => parseFloat(a.dist) - parseFloat(b.dist));
+}
+
+// ── FIND LOCATION FROM DATABASE ──
+function findLocation(query) {
+  query = query.toLowerCase().trim();
+  // Exact match first
+  let match = INDIA_LOCATIONS.find(l =>
+    l.name.toLowerCase() === query ||
+    l.state.toLowerCase() === query
+  );
+  // Partial match
+  if(!match) {
+    match = INDIA_LOCATIONS.find(l =>
+      l.name.toLowerCase().includes(query) ||
+      query.includes(l.name.toLowerCase())
+    );
+  }
+  // State match
+  if(!match) {
+    match = INDIA_LOCATIONS.find(l =>
+      l.state.toLowerCase().includes(query)
+    );
+  }
+  return match;
+}
+
+// ── AUTOCOMPLETE SUGGESTIONS ──
+function getSuggestions(query) {
+  if(!query || query.length < 2) return [];
+  query = query.toLowerCase();
+  const seen = new Set();
+  const results = [];
+  for(const loc of INDIA_LOCATIONS) {
+    const key = loc.name + loc.state;
+    if(seen.has(key)) continue;
+    if(loc.name.toLowerCase().includes(query) ||
+       loc.state.toLowerCase().includes(query)) {
+      seen.add(key);
+      results.push(loc);
+      if(results.length >= 8) break;
+    }
+  }
+  return results;
+}
+
+function onSearchInput() {
+  const q    = document.getElementById('searchInput').value;
+  const sugg = getSuggestions(q);
+  const box  = document.getElementById('suggestions');
+
+  if(!sugg.length || !q) {
+    box.classList.remove('show');
+    return;
+  }
+
+  box.innerHTML = sugg.map(loc => `
+    <div class="suggestion-item" onclick="selectSuggestion('${loc.name}', ${loc.lat}, ${loc.lng}, '${loc.state}')">
+      <span class="suggestion-icon">&#128205;</span>
+      <div>
+        <div class="suggestion-name">${loc.name}</div>
+        <div class="suggestion-state">${loc.state}</div>
+      </div>
+    </div>
+  `).join('');
+  box.classList.add('show');
+}
+
+function selectSuggestion(name, lat, lng, state) {
+  document.getElementById('searchInput').value = name + ", " + state;
+  document.getElementById('suggestions').classList.remove('show');
+  searchLocation(lat, lng, name + ", " + state);
+}
+
+function onKeyDown(e) {
+  if(e.key === 'Enter') {
+    document.getElementById('suggestions').classList.remove('show');
+    handleSearch();
+  }
+  if(e.key === 'Escape') {
+    document.getElementById('suggestions').classList.remove('show');
+  }
+}
+
+// Close suggestions on outside click
+document.addEventListener('click', function(e) {
+  if(!e.target.closest('.search-input-wrap')) {
+    document.getElementById('suggestions').classList.remove('show');
+  }
+});
+
+// ── MAP SETUP ──
+let map = L.map('map').setView([22.9734, 78.6569], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'&copy; OpenStreetMap contributors', maxZoom:19
+}).addTo(map);
+
+let markers = [];
+
+function makeIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="background:linear-gradient(135deg,#0d6e7a,#1aab9b);color:white;border-radius:50% 50% 50% 0;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(13,110,122,0.5);border:2px solid white"><span style="transform:rotate(45deg)">+</span></div>`,
+    iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-34]
+  });
+}
+
+function myIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="background:#e74c3c;border-radius:50%;width:16px;height:16px;border:3px solid white;box-shadow:0 2px 8px rgba(231,76,60,0.6)"></div>`,
+    iconSize:[16,16], iconAnchor:[8,8]
+  });
+}
+
+function clearMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+}
+
+// ── SHOW PHARMACIES ──
+function showPharmacies(list, centerLat, centerLng, locName) {
+  clearMarkers();
+  document.getElementById('countBadge').textContent = list.length + ' found';
+  document.getElementById('sidebarLocation').textContent = locName;
+
+  map.setView([centerLat, centerLng], 14);
+
+  // User location marker
+  const myM = L.marker([centerLat, centerLng], {icon: myIcon()}).addTo(map);
+  myM.bindPopup(`<b style="color:#0d6e7a">&#128205; ${locName}</b>`);
+  markers.push(myM);
+
+  const listEl = document.getElementById('pharmacyList');
+  listEl.innerHTML = '';
+
+  list.forEach((p, i) => {
+    const marker = L.marker([p.lat, p.lng], {icon: makeIcon()}).addTo(map);
+    marker.bindPopup(`
+      <div style="min-width:200px;font-family:'DM Sans',sans-serif;padding:4px">
+        <b style="font-size:14px;color:#0a2a2f">${p.name}</b><br>
+        <span style="font-size:12px;color:#6b9aa0">&#128205; ${p.address}</span><br><br>
+        <span style="${p.open ? 'background:#e8f8ee;color:#1a7a3a' : 'background:#fef0f0;color:#c0392b'};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">
+          ${p.open ? '&#9679; Open Now' : '&#9679; Closed'}
+        </span><br><br>
+        <span style="font-size:12px;color:#6b9aa0;line-height:2">
+          &#128222; ${p.phone}<br>
+          &#8987; ${p.hours}<br>
+          &#11088; ${p.rating}/5 &nbsp; &#128663; ${p.dist}
+        </span>
+      </div>
+    `);
+    markers.push(marker);
+
+    const card = document.createElement('div');
+    card.className = 'pharmacy-card';
+    card.id = 'card-' + i;
+    card.innerHTML = `
+      <div class="pharmacy-top">
+        <div class="pharmacy-name">${p.name}</div>
+        <span class="${p.open ? 'open-badge' : 'closed-badge'}">${p.open ? '&#9679; Open' : '&#9679; Closed'}</span>
+      </div>
+      <div class="pharmacy-addr">&#128205; ${p.address}</div>
+      <div class="pharmacy-meta">
+        <div class="meta-item">&#11088; <span>${p.rating}</span></div>
+        <div class="meta-item">&#128337; <span>${p.hours}</span></div>
+        <div class="meta-item">&#128663; <span>${p.dist}</span></div>
+      </div>
+      <div class="ph-actions">
+        <button class="btn-dir" onclick="flyTo(${p.lat},${p.lng},${i+1})">&#128204; Directions</button>
+        <button class="btn-call" onclick="alert('Calling ${p.phone}\\n(Demo number for hackathon)')">&#128222; Call</button>
+      </div>
+    `;
+    card.onclick = function(e) {
+      if(e.target.tagName === 'BUTTON') return;
+      flyTo(p.lat, p.lng, i+1);
+    };
+    listEl.appendChild(card);
+  });
+}
+
+function flyTo(lat, lng, idx) {
+  map.flyTo([lat, lng], 17, {duration:1});
+  if(markers[idx]) markers[idx].openPopup();
+  document.querySelectorAll('.pharmacy-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('card-' + (idx-1));
+  if(card) { card.classList.add('active'); card.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+}
+
+// ── SEARCH LOCATION ──
+function searchLocation(lat, lng, name) {
+  const pharmacies = generatePharmacies(lat, lng, name);
+  showPharmacies(pharmacies, lat, lng, name);
+}
+
+// ── MAIN SEARCH HANDLER ──
+async function handleSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if(!query) { alert('Please enter a city, district or state!'); return; }
+
+  document.getElementById('suggestions').classList.remove('show');
+
+  // Step 1: Try our local database first (instant, no internet)
+  const localMatch = findLocation(query);
+  if(localMatch) {
+    const name = localMatch.name + ", " + localMatch.state;
+    searchLocation(localMatch.lat, localMatch.lng, name);
+    return;
+  }
+
+  // Step 2: If not in local DB, try Nominatim API
+  showLoading('Searching for ' + query + '...');
+  try {
+    const url  = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' India')}&format=json&limit=1`;
+    const res  = await fetch(url, {headers:{'Accept-Language':'en'}});
+    const data = await res.json();
+
+    if(data && data.length > 0) {
+      const lat  = parseFloat(data[0].lat);
+      const lng  = parseFloat(data[0].lon);
+      const name = data[0].display_name.split(',').slice(0,2).join(', ');
+      hideLoading();
+      searchLocation(lat, lng, name);
+    } else {
+      hideLoading();
+      alert('"' + query + '" not found. Try another city or state name.');
+    }
+  } catch(e) {
+    hideLoading();
+    alert('Search failed. Check your internet connection.');
+  }
+}
+
+// ── MY LOCATION ──
+function locateMe() {
+  if(!navigator.geolocation) { alert('Geolocation not supported!'); return; }
+  showLoading('Getting your location...');
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      let cityName = 'Your Location';
+      try {
+        const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+        const data = await res.json();
+        cityName = data.address?.city || data.address?.town || data.address?.village || data.address?.state || 'Your Location';
+      } catch(e) {}
+      document.getElementById('searchInput').value = cityName;
+      hideLoading();
+      searchLocation(lat, lng, cityName);
+    },
+    (err) => {
+      hideLoading();
+      alert('Could not get location. Please allow location access or search manually.');
+    },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:0}
+  );
+}
+
+function showLoading(msg) {
+  document.getElementById('loadingText').textContent = msg;
+  document.getElementById('loading').classList.remove('hidden');
+}
+function hideLoading() {
+  document.getElementById('loading').classList.add('hidden');
+}
+
+// ── ENTER KEY ──
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+  if(e.key === 'Enter') { document.getElementById('suggestions').classList.remove('show'); handleSearch(); }
+});
+
+// ── AUTO LOAD Agra on start ──
+window.onload = function() {
+  const agra = findLocation('agra');
+  if(agra) searchLocation(agra.lat, agra.lng, 'Agra, Uttar Pradesh');
+};
+</script>
+</body>
+</html>
