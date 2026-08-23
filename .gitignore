@@ -1,0 +1,10 @@
+OllamaSetup.exe
+.vscode/
+uploads/
+__pycache__/
+*.pyc
+.env
+*.log
+users.json
+scan_cache.json
+vishalpres.jpeg

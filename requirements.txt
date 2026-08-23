@@ -1,0 +1,11 @@
+flask
+Pillow
+opencv-python
+numpy
+pytesseract
+symspellpy
+rapidfuzz
+scikit-learn
+requests
+google-cloud-vision
+ 

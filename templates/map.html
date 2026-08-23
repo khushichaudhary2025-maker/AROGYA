@@ -212,7 +212,7 @@ const INDIA_LOCATIONS = [
   { name:"Rohtas",        state:"Bihar", lat:24.9514, lng:83.9936 },
   { name:"Buxar",         state:"Bihar", lat:25.5635, lng:83.9783 },
   { name:"Bihar",         state:"Bihar", lat:25.5941, lng:85.1376 },
-  {name:"siwan",          state:"bihar", lat:26.22,   lng:84.36},
+  {name:"siwan",          state:"bihar", lat:26.22,   lng:84.36},-
 
   // ── DELHI ──
   { name:"New Delhi",         state:"Delhi", lat:28.6139, lng:77.2090 },
@@ -602,7 +602,7 @@ document.addEventListener('click', function(e) {
     document.getElementById('suggestions').classList.remove('show');
   }
 });
-
+      
 // ── MAP SETUP ──
 let map = L.map('map').setView([22.9734, 78.6569], 5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
