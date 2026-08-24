@@ -722,19 +722,181 @@ def customer_dashboard():
     return render_template("customer_dashboard.html", customer=customer)
 
 
+ORDERS_FILE = "orders.json"
+
+def load_orders():
+    if not os.path.exists(ORDERS_FILE):
+        return []
+    with open(ORDERS_FILE, "r") as f:
+        return json.load(f)
+
+def save_orders(orders):
+    with open(ORDERS_FILE, "w") as f:
+        json.dump(orders, f, indent=2)
+
 @app.route('/rider/dashboard')
 def rider_dashboard():
     if session.get("user_role") != "rider":
         flash("Please login as rider!", "error")
         return redirect(url_for("login"))
     
-    # Build rider dict from session
-    rider = {
-        "name":           session.get("user_name", "Rider"),
-        "email":          session.get("user_email", ""),
-        "role":           session.get("user_role", ""),
-    }
-    return render_template("rider_dashboard.html", rider=rider)
+    email = session.get("user_email")
+    rider = find_user(email, "rider")
+    if not rider:
+        rider = {
+            "name": session.get("user_name", "Rider"),
+            "email": email,
+            "role": "rider",
+            "is_online": False,
+            "earnings": 0,
+            "deliveries": 0,
+            "rating": 5.0
+        }
+    
+    is_online = rider.get("is_online", False)
+    orders = load_orders()
+    available = [o for o in orders if o.get("status") == "pending"]
+    in_progress = [o for o in orders if o.get("rider_id") == email and o.get("status") in ["accepted", "picked_up"]]
+    delivered = [o for o in orders if o.get("rider_id") == email and o.get("status") == "delivered"]
+    
+    return render_template(
+        "rider_dashboard.html",
+        rider=rider,
+        is_online=is_online,
+        available=available,
+        in_progress=in_progress,
+        delivered=delivered
+    )
+
+@app.route('/rider/toggle_online', methods=['POST'])
+def rider_toggle_online():
+    if session.get("user_role") != "rider":
+        return {"error": "Unauthorized"}, 403
+    
+    email = session.get("user_email")
+    users = load_users()
+    is_online = False
+    for u in users:
+        if u.get("email") == email and u.get("role") == "rider":
+            u["is_online"] = not u.get("is_online", False)
+            is_online = u["is_online"]
+            break
+    save_users(users)
+    return {"is_online": is_online}
+
+@app.route('/rider/accept/<order_id>', methods=['POST'])
+def rider_accept_order(order_id):
+    if session.get("user_role") != "rider":
+        flash("Please login as rider!", "error")
+        return redirect(url_for("login"))
+    
+    email = session.get("user_email")
+    name = session.get("user_name", "Rider")
+    orders = load_orders()
+    import datetime
+    now_str = datetime.datetime.now().strftime("%d %b %Y, %I:%M %p")
+    
+    for o in orders:
+        if o.get("id") == order_id:
+            o["status"] = "accepted"
+            o["rider_id"] = email
+            o["rider_name"] = name
+            o["accepted_at"] = now_str
+            break
+    save_orders(orders)
+    flash(f"Order {order_id} accepted successfully!", "success")
+    return redirect(url_for("rider_dashboard"))
+
+@app.route('/rider/pickup/<order_id>', methods=['POST'])
+def rider_pickup_order(order_id):
+    if session.get("user_role") != "rider":
+        flash("Please login as rider!", "error")
+        return redirect(url_for("login"))
+    
+    email = session.get("user_email")
+    orders = load_orders()
+    import datetime
+    now_str = datetime.datetime.now().strftime("%d %b %Y, %I:%M %p")
+    
+    for o in orders:
+        if o.get("id") == order_id and o.get("rider_id") == email:
+            o["status"] = "picked_up"
+            o["pickup_at"] = now_str
+            break
+    save_orders(orders)
+    flash(f"Order {order_id} marked as Picked Up!", "success")
+    return redirect(url_for("rider_dashboard"))
+
+@app.route('/rider/deliver/<order_id>', methods=['POST'])
+def rider_deliver_order(order_id):
+    if session.get("user_role") != "rider":
+        flash("Please login as rider!", "error")
+        return redirect(url_for("login"))
+    
+    email = session.get("user_email")
+    orders = load_orders()
+    import datetime
+    now_str = datetime.datetime.now().strftime("%d %b %Y, %I:%M %p")
+    
+    order_found = False
+    for o in orders:
+        if o.get("id") == order_id and o.get("rider_id") == email:
+            o["status"] = "delivered"
+            o["delivered_at"] = now_str
+            order_found = True
+            break
+            
+    if order_found:
+        save_orders(orders)
+        users = load_users()
+        for u in users:
+            if u.get("email") == email and u.get("role") == "rider":
+                u["deliveries"] = u.get("deliveries", 0) + 1
+                u["earnings"] = u.get("earnings", 0) + 60
+                break
+        save_users(users)
+        flash(f"Order {order_id} marked as Delivered! +₹60 added to earnings.", "success")
+    else:
+        flash("Failed to mark order as delivered.", "error")
+        
+    return redirect(url_for("rider_dashboard"))
+
+@app.route('/rider/navigate/<order_id>')
+def rider_navigation(order_id):
+    if session.get("user_role") != "rider":
+        flash("Please login as rider!", "error")
+        return redirect(url_for("login"))
+        
+    orders = load_orders()
+    order = next((o for o in orders if o.get("id") == order_id), None)
+    
+    # Prototype/Demo fallback mode
+    if not order or order_id == "demo":
+        order = {
+            "id": "DEMO-100",
+            "status": "accepted",
+            "pharmacy": "Apollo Pharmacy",
+            "customer_name": "Demo Prototype Guest",
+            "customer_phone": "9876543210",
+            "address": "Civil Lines, Mathura",
+            "amount": 420,
+            "payment": "Cash on Delivery",
+            "distance": "2.4 km"
+        }
+        
+    rider = find_user(session.get("user_email"), "rider")
+    if not rider:
+        rider = {
+            "name": session.get("user_name", "Rider"),
+            "email": session.get("user_email", ""),
+            "rider_city": "Mathura"
+        }
+        
+    return render_template("navigation_map.html", order=order, rider=rider)
+
+@app.route('/sw.js')
+def service_worker():
+    return app.send_static_file('sw.js')
 
 @app.route("/scan")
 def scan():

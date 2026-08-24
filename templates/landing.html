@@ -21,7 +21,7 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text); overflow-x:hidden; }
 
-  /* NAV */
+  
   nav {
     position:fixed; top:0; left:0; right:0; z-index:100;
     display:flex; align-items:center; justify-content:space-between;
@@ -50,7 +50,7 @@
   }
   .nav-cta:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(26,155,171,0.45); }
 
-  /* HERO */
+  
   .hero {
     min-height:100vh; display:grid; grid-template-columns:1fr 1fr;
     align-items:center; gap:60px; padding:120px 80px 80px;
@@ -93,14 +93,14 @@
   .feature-row-text span { font-size:12px; color:var(--muted); }
   .feature-arrow { width:28px; height:28px; border-radius:50%; background:var(--cream); display:flex; align-items:center; justify-content:center; color:var(--teal); font-size:14px; font-weight:700; }
 
-  /* STATS */
+  
   .stats-band { background:linear-gradient(135deg,var(--teal-dark) 0%,var(--mid) 100%); padding:40px 80px; display:flex; justify-content:space-around; align-items:center; gap:20px; }
   .stat-item { text-align:center; color:white; }
   .stat-number { font-family:'Syne',sans-serif; font-size:40px; font-weight:800; background:linear-gradient(135deg,white,var(--teal-light)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .stat-label { font-size:13px; opacity:.7; margin-top:4px; }
   .stat-divider { width:1px; height:50px; background:rgba(255,255,255,.2); }
 
-  /* SERVICES */
+  
   .section { padding:100px 80px; }
   .section-tag { display:inline-block; background:rgba(26,155,171,0.1); color:var(--teal); padding:6px 14px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:16px; }
   .section-title { font-family:'Syne',sans-serif; font-weight:800; font-size:clamp(28px,3vw,44px); color:var(--dark); letter-spacing:-1px; line-height:1.1; margin-bottom:12px; }
@@ -116,7 +116,7 @@
   .service-link { display:inline-flex; align-items:center; gap:6px; margin-top:20px; font-size:13px; font-weight:600; color:var(--teal); text-decoration:none; }
   .service-card.featured .service-link { color:rgba(255,255,255,0.9); }
 
-  /* HOW IT WORKS */
+  
   .how-section { background:linear-gradient(160deg,var(--dark) 0%,var(--mid) 100%); padding:100px 80px; color:white; }
   .how-section .section-tag { background:rgba(255,255,255,0.1); color:var(--teal-light); }
   .how-section .section-title { color:white; }
@@ -128,7 +128,7 @@
   .step-item h4 { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; margin-bottom:10px; }
   .step-item p { font-size:13px; color:rgba(255,255,255,.5); line-height:1.6; }
 
-  /* ABOUT */
+  
   .about-section { padding:100px 80px; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; }
   .about-visual { background:linear-gradient(145deg,var(--teal-dark),var(--green)); border-radius:28px; padding:48px; color:white; }
   .about-visual h3 { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; margin-bottom:16px; }
@@ -141,7 +141,7 @@
   .check-icon { width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--green)); display:flex; align-items:center; justify-content:center; font-size:11px; color:white; flex-shrink:0; margin-top:2px; }
   .about-check span { font-size:14px; color:var(--text); line-height:1.6; }
 
-  /* FOOTER */
+  
   footer { background:var(--dark); color:white; padding:48px 80px 32px; display:flex; justify-content:space-between; align-items:center; }
   .footer-brand { display:flex; align-items:center; gap:12px; }
   .footer-brand img { height:72px; width:auto; object-fit:contain; opacity:0.9; }
@@ -152,12 +152,12 @@
   .footer-links a { color:rgba(255,255,255,.5); font-size:13px; text-decoration:none; transition:color .2s; }
   .footer-links a:hover { color:var(--teal-light); }
 
-  /* ANIMATIONS */
+  
   @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
   @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
 
-  /* RESPONSIVE */
+  
   @media(max-width:900px){
     .hero,.about-section{grid-template-columns:1fr;padding:100px 28px 60px}
     .services-grid{grid-template-columns:1fr}
@@ -172,7 +172,7 @@
 </head>
 <body>
 
-<!-- NAV -->
+
 <nav>
   <a href="/" class="nav-logo">
     <img src="/static/arogya.jpeg" alt="Arogya Logo">
@@ -186,7 +186,6 @@
 </nav>
 
 
-<!-- HERO -->
 <section class="hero" id="dashboard">
   <div class="hero-content">
     <div class="hero-badge"><span class="dot"></span>AI-Powered Medicine Delivery &middot; India</div>

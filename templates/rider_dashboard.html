@@ -187,9 +187,12 @@
   {% endwith %}
 
   <!-- HEADER -->
-  <div class="page-header">
-    <h1>&#127934; Rider Dashboard</h1>
-    <p>{{ rider.get('vehicle_type','') }} &nbsp;&#183;&nbsp; {{ rider.get('vehicle_number','') }} &nbsp;&#183;&nbsp; {{ rider.get('rider_city','') }}</p>
+  <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1>&#127934; Rider Dashboard</h1>
+      <p>{{ rider.get('vehicle_type','') }} &nbsp;&#183;&nbsp; {{ rider.get('vehicle_number','') }} &nbsp;&#183;&nbsp; {{ rider.get('rider_city','') }}</p>
+    </div>
+    <a href="/rider/navigate/demo" class="btn-map" style="background:var(--orange); border-color:var(--orange); color:white; font-size:13px; padding:10px 18px; border-radius:50px;">🛠️ Open Demo Navigation Map</a>
   </div>
 
   <!-- STATS -->
@@ -252,7 +255,7 @@
             <form action="/rider/accept/{{ order.id }}" method="post" style="flex:1">
               <button type="submit" class="btn-action btn-accept" style="width:100%">&#10003; Accept Order</button>
             </form>
-            <a href="/map" class="btn-map">&#128204;</a>
+            <a href="/rider/navigate/{{ order.id }}" class="btn-map" title="View Navigation Route">&#128205; Navigate</a>
           </div>
         </div>
         {% endfor %}
@@ -304,7 +307,7 @@
                 <button type="submit" class="btn-action btn-deliver" style="width:100%">&#10003; Mark Delivered</button>
               </form>
             {% endif %}
-            <a href="/map" class="btn-map">&#128204;</a>
+            <a href="/rider/navigate/{{ order.id }}" class="btn-map" title="Navigate Order">&#128205; Navigate</a>
           </div>
         </div>
         {% endfor %}

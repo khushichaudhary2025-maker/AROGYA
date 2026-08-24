@@ -2,7 +2,7 @@
   {
     "customer_name": "Khushi",
     "medicines": "Dolo 650, Paracetamol",
-    "status": "picked_up",
+    "status": "delivered",
     "id": "ORD-1",
     "customer_phone": "N/A",
     "address": "N/A",
@@ -14,7 +14,8 @@
     "distance": "1-3 km",
     "pharmacy": "Nearest Pharmacy",
     "accepted_at": "28 Mar 2026, 02:02 AM",
-    "pickup_at": "28 Mar 2026, 02:05 AM"
+    "pickup_at": "28 Mar 2026, 02:05 AM",
+    "delivered_at": "24 Aug 2026, 12:43 PM"
   },
   {
     "customer_name": "Aman",
